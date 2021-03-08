@@ -21,7 +21,7 @@ library(Hmisc)
 NA_values <- c("", '9999', '999', '99999')
 selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
 
-data_2019 <- read.csv('2019.csv', na.strings = NA_values) 
+data_2019 <- read.csv('./data/2019.csv', na.strings = NA_values) 
 View(data_2019)
 
 mandatory_2019 <- data_2019 %>%
