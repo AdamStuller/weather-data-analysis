@@ -5,11 +5,12 @@ output: html_document
 
 ```{r, include=FALSE}
 install.packages("tidyverse")
-install.packages("'funModeling")
+install.packages("funModeling")
 install.packages("Hmisc")
 library(tidyverse)
-library(funModeling)
 library(Hmisc)
+library(funModeling)
+
 
 ```
 
@@ -19,10 +20,9 @@ library(Hmisc)
 ```{r setup}
 
 NA_values <- c("", '9999', '999', '99999')
-selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
+selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
 
-data_2019 <- read.csv('./data/2019.csv', na.strings = NA_values) 
-View(data_2019)
+data_2019 <- read.csv('../data/2019.csv', na.strings = NA_values) 
 
 mandatory_2019 <- data_2019 %>%
   separate(TMP,c('TMP', NA), sep=',')  %>% 
@@ -30,23 +30,27 @@ mandatory_2019 <- data_2019 %>%
   separate(VIS, c('VIS', NA, NA, NA)) %>% 
   separate(SLP, c('SLP', NA)) %>% 
   separate(CIG, c('CIG', NA, NA, NA)) %>% 
+  separate(DEW, c('DEW', NA), sep=',') %>% 
   dplyr::mutate(
-    TMP = map_dbl(.$TMP,  process_tmp),
-    WND_ANGLE = map_dbl(.$WND_ANGLE, process_wnd_angle),
-    WND_SPEED = map_dbl(.$WND_SPEED, process_wnd_speed),
-    VIS = map_dbl(.$VIS, process_vis),
-    SLP = map_dbl(.$SLP, process_slp),
-    CIG = map_dbl(.$CIG, process_cig)
+    TMP = map_dbl(.$TMP,  purrr::compose(process_tmp, replace_NA) ),
+    WND_ANGLE = map_dbl(.$WND_ANGLE, purrr::compose( process_wnd_angle, replace_NA) ),
+    WND_SPEED = map_dbl(.$WND_SPEED, purrr::compose(process_wnd_speed, replace_NA)),
+    VIS = map_dbl(.$VIS, purrr::compose(process_vis, replace_NA)),
+    SLP = map_dbl(.$SLP, purrr::compose(process_slp, replace_NA)),
+    CIG = map_dbl(.$CIG, purrr::compose(process_cig, replace_NA)),
+    DEW = map_dbl(.$DEW, purrr::compose(process_dew, replace_NA))
   ) %>%
   dplyr::select(all_of(selected_cols))
 
 
 ```
 
+# Repalcing Na 
+
 ```{r}
 
-replace_na <- function(val) {
-  if (is.na(tmp) || tmp %in% NA_values){
+replace_NA <- function(val) {
+  if (is.na(val) || val %in% NA_values){
     return (NA)
   }
   else {
@@ -65,12 +69,7 @@ Second information does not concern us and is thus removed. Both values are sepa
 ```{r}
 
 process_tmp <- function(tmp) {
-  if (is.na(tmp) || tmp %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(tmp) / 10)
-  }
+  return (as.numeric(tmp) / 10)
 }
     ```
 
@@ -78,21 +77,11 @@ process_tmp <- function(tmp) {
 
 ```{r}
 process_wnd_angle <- function(angle) {
-  if (is.na(angle) || angle %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(angle))
-  }
+  return (as.numeric(angle))
 }
 
 process_wnd_speed <- function(speed) {
-  if (is.na(speed) || speed %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(speed) / 10)
-  }
+  return (as.numeric(speed) / 10)
 }
 ```
 
@@ -100,12 +89,7 @@ process_wnd_speed <- function(speed) {
 
 ```{r}
 process_vis <- function(visibility) {
-  if (is.na(visibility) || visibility %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(visibility))
-  }
+  return (as.numeric(visibility))
 }
 ```
 
@@ -114,12 +98,7 @@ process_vis <- function(visibility) {
 ```{r}
 
 process_slp <- function(pressure) {
-  if (is.na(pressure) || pressure %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(pressure)  /10)
-  }
+  return (as.numeric(pressure)  /10)
 }
 ```
 
@@ -128,17 +107,29 @@ process_slp <- function(pressure) {
 ```{r}
 
 process_cig <- function(ceiling) {
-  if (is.na(ceiling) || ceiling %in% NA_values){
-    return (NA)
-  }
-  else {
-    return (as.numeric(ceiling))
-  }
+  return (as.numeric(ceiling))
 }
 ```
 
 
-# 
+# AIR-TEMPERATURE-OBSERVATION dew point temperature
+
+The temperature to which a given parcel of air must be cooled at constant pressure and water vapor content in order for saturation to occur.
+
+MIN: -0982 
+MAX: +0368 
+UNITS: Degrees Celsius 
+SCALING FACTOR: 10 
+DOM: A general domain comprised of the numeric characters (0-9), a plus sign (+), and a minus sign (-).
+
++9999 = Missing.
+
+```{r}
+process_dew <- function(dew) {
+  return (as.numeric(dew) /10)
+}
+```
+
 
 ### Exploratory data analysis
 
