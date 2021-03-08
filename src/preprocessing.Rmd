@@ -1,0 +1,292 @@
+---
+title: "Preprocessing"
+output: html_document
+---
+
+```{r, include=FALSE}
+install.packages("tidyverse")
+install.packages("'funModeling")
+install.packages("Hmisc")
+library(tidyverse)
+library(funModeling)
+library(Hmisc)
+
+```
+
+
+## Loading of document (year 2019)
+
+```{r setup}
+
+NA_values <- c("", '9999', '999', '99999')
+selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
+
+data_2019 <- read.csv('2019.csv', na.strings = NA_values) 
+View(data_2019)
+
+mandatory_2019 <- data_2019 %>%
+  separate(TMP,c('TMP', NA), sep=',')  %>% 
+  separate(WND, c('WND_ANGLE', NA, NA, 'WND_SPEED', NA)) %>%
+  separate(VIS, c('VIS', NA, NA, NA)) %>% 
+  separate(SLP, c('SLP', NA)) %>% 
+  separate(CIG, c('CIG', NA, NA, NA)) %>% 
+  dplyr::mutate(
+    TMP = map_dbl(.$TMP,  process_tmp),
+    WND_ANGLE = map_dbl(.$WND_ANGLE, process_wnd_angle),
+    WND_SPEED = map_dbl(.$WND_SPEED, process_wnd_speed),
+    VIS = map_dbl(.$VIS, process_vis),
+    SLP = map_dbl(.$SLP, process_slp),
+    CIG = map_dbl(.$CIG, process_cig)
+  ) %>%
+  dplyr::select(all_of(selected_cols))
+
+
+```
+
+
+
+### Firstly we must have a look at temperature 
+
+According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
+
+Second information does not concern us and is thus removed. Both values are separated and only temperature is kept. Temperature is then converted to numeric (if not 9999) and divided by 10.     
+
+```{r}
+
+process_tmp <- function(tmp) {
+  if (is.na(tmp) || tmp %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(tmp) / 10)
+  }
+}
+    ```
+
+# Secondly there is Wind
+
+```{r}
+process_wnd_angle <- function(angle) {
+  if (is.na(angle) || angle %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(angle))
+  }
+}
+
+process_wnd_speed <- function(speed) {
+  if (is.na(speed) || speed %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(speed) / 10)
+  }
+}
+```
+
+### Visibility
+
+```{r}
+process_vis <- function(visibility) {
+  if (is.na(visibility) || visibility %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(visibility))
+  }
+}
+```
+
+### Pressure
+
+```{r}
+
+process_slp <- function(pressure) {
+  if (is.na(pressure) || pressure %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(pressure)  /10)
+  }
+}
+```
+
+### Ceiling
+
+```{r}
+
+process_cig <- function(ceiling) {
+  if (is.na(ceiling) || ceiling %in% NA_values){
+    return (NA)
+  }
+  else {
+    return (as.numeric(ceiling))
+  }
+}
+```
+
+
+# 
+
+### Exploratory data analysis
+
+Firstly we look at data structure(str) which gives us information about number of observations(rows) and columns, column names and types and a head of the first observations. Secondly we look at the data summary - numbers of zeros, missing values, infinite numbers and unique values. 
+
+```{r}
+
+str(mandatory_2019)
+glimpse(mandatory_2019)
+
+status(mandatory_2019) 
+summary(mandatory_2019)
+
+describe(mandatory_2019)
+
+```
+
+
+As we can see there are no categorical variables in our data, so let's have a look at numerical variables. 
+
+### Analyzing numerical variables
+
+```{r}
+
+plot_num(mandatory_2019)
+mandatory_2019[,3:8] %>% plot_num()
+
+
+profiling_num(mandatory_2019)
+
+profiling_num(mandatory_2019) %>% select(variable, mean, std_dev, variation_coef, range_98)
+
+```
+
+
+For each variable there is a histogram showing values frequency and boxplot which helps us detect potential outliers and also visualize minimum, maximum, median, 1.(0.25) and 3. quartiles (0.75). All observations above (q(0.75) + 1.5*IQR) or below (q(0.25) - 1.5*IQR) are considered as potential outliers (IQR = difference between 3. and 1. quartile). Such observations are displayed as points in the boxplot.
+
+
+### Temperature
+
+```{r}
+summary(mandatory_2019$TMP)
+mandatory_2019['TMP'] %>% profiling_num()
+
+
+hist(mandatory_2019$TMP,
+  xlab = "TMP",
+  main = "Temperature histogram",
+  breaks = sqrt(nrow(mandatory_2019)/2),
+  col = 2
+)
+
+boxplot(mandatory_2019$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
+
+boxplot.stats(mandatory_2019$TMP)$out
+
+```
+
+### Wind angle
+
+```{r}
+summary(mandatory_2019$WND_ANGLE)
+mandatory_2019['WND_ANGLE'] %>% profiling_num()
+
+
+hist(mandatory_2019$WND_ANGLE,
+  xlab = "WND_ANGLE",
+  main = "Wind angle histogram",
+  breaks = sqrt(nrow(mandatory_2019)/4),
+  col = 3
+)
+
+boxplot(mandatory_2019$WND_ANGLE, col = 3, ylab = "WND_ANGLE", main = "Wind angle boxplot")
+
+boxplot.stats(mandatory_2019$WND_ANGLE)$out
+
+```
+
+### Wind speed
+
+```{r}
+summary(mandatory_2019$WND_SPEED)
+mandatory_2019['WND_SPEED'] %>% profiling_num()
+
+
+hist(mandatory_2019$WND_SPEED,
+  xlab = "WND_SPEED",
+  main = "Wind speed histogram",
+  breaks = 10,
+  col = 4
+)
+
+boxplot(mandatory_2019$WND_SPEED, col = 4, ylab = "WND_SPEED", main = "Wind speed boxplot")
+
+boxplot.stats(mandatory_2019$WND_SPEED)$out
+
+```
+
+### Visibility
+
+```{r}
+summary(mandatory_2019$VIS)
+mandatory_2019['VIS'] %>% profiling_num()
+
+
+hist(mandatory_2019$VIS,
+  xlab = "VIS",
+  main = "Visibility histogram",
+  breaks = 30,
+  col = 5
+)
+
+boxplot(mandatory_2019$VIS, col = 5, ylab = "VIS", main = "Visibility boxplot")
+
+boxplot.stats(mandatory_2019$VIS)$out
+
+```
+
+### Pressure
+
+```{r}
+summary(mandatory_2019$SLP)
+mandatory_2019['SLP'] %>% profiling_num()
+
+
+hist(mandatory_2019$SLP,
+  xlab = "SLP",
+  main = "Pressure histogram",
+  breaks = sqrt(nrow(mandatory_2019)/2),
+  col = 6
+)
+
+boxplot(mandatory_2019$SLP, col = 6, ylab = "SLP", main = "Pressure boxplot")
+
+boxplot.stats(mandatory_2019$SLP)$out
+```
+
+### Ceiling
+
+```{r}
+summary(mandatory_2019$CIG)
+mandatory_2019['CIG'] %>% profiling_num()
+
+
+hist(mandatory_2019$CIG,
+  xlab = "CIG",
+  main = "Ceiling histogram",
+  breaks = 20,
+  col = 7
+)
+
+boxplot(mandatory_2019$CIG, col = 7, ylab = "CIG", main = "Ceiling boxplot")
+
+boxplot.stats(mandatory_2019$CIG)$out
+
+```
+
+
+```{r}
+corr <- cor(mandatory_2019[,3:8], use = "na.or.complete")
+
+```
