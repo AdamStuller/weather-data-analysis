@@ -18,7 +18,7 @@ library(funModeling)
 
 ```{r NA, echo=FALSE}
 
-replace_NA <- function(val, scaling = 1) {
+process_col <- function(val, scaling = 1) {
   if (is.na(val) || val %in% NA_values){
     return (NA)
   }
@@ -47,6 +47,8 @@ data_sliac <- as.data.frame(data_sliac)
 
 ```{r}
 
+data_sliac <- read.csv('../data/2019.csv')
+
 mandatory_data <- data_sliac %>%
   separate(TMP, c('TMP', NA), sep=',')  %>% 
   separate(WND, c('WND_ANGLE', NA, NA, 'WND_SPEED', NA)) %>%
@@ -55,22 +57,29 @@ mandatory_data <- data_sliac %>%
   separate(CIG, c('CIG', NA, NA, NA)) %>% 
   separate(DEW, c('DEW', NA), sep=',') %>% 
   dplyr::mutate(
-    TMP = map_dbl(.$TMP,  replace_NA, 10),
-    WND_ANGLE = map_dbl(.$WND_ANGLE, replace_NA),
-    WND_SPEED = map_dbl(.$WND_SPEED, replace_NA, 10),
-    VIS = map_dbl(.$VIS, replace_NA),
-    SLP = map_dbl(.$SLP, replace_NA, 10),
-    CIG = map_dbl(.$CIG, replace_NA),
-    DEW = map_dbl(.$DEW, replace_NA, 10)
+    TMP = map_dbl(.$TMP,  process_col, 10),
+    WND_ANGLE = map_dbl(.$WND_ANGLE, process_col),
+    WND_SPEED = map_dbl(.$WND_SPEED, process_col, 10),
+    VIS = map_dbl(.$VIS, process_col),
+    SLP = map_dbl(.$SLP, process_col, 10),
+    CIG = map_dbl(.$CIG, process_col),
+    DEW = map_dbl(.$DEW, process_col, 10),
+    #DATE = map(.$DATE, ~ as.Date(.x))
+    
   ) %>%
   dplyr::select(all_of(selected_cols))
 
 View(mandatory_data)
 ```
 
-# Repalcing Na 
+# Mean daily temperature
 
 ```{r NA, eval=FALSE}
+
+mandatory_data %>%
+  dplyr::mutate(DAY = map(.$DATE, as.Date)) %>%
+  dplyr::group_by(DAY) %>%
+  dplyr::summarise(mean = mean(TMP)) 
 ```
 
 ### Firstly we must have a look at temperature 
