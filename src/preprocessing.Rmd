@@ -7,20 +7,32 @@ output: html_document
 install.packages("tidyverse")
 install.packages("funModeling")
 install.packages("Hmisc")
+install.packages('data.table')
 library(tidyverse)
 library(Hmisc)
+library(data.table)
 library(funModeling)
-
-
 ```
 
 
-## Loading of document (year 2019)
+## Loading of documents (years 2010 - 2020)
 
 ```{r setup}
 
 NA_values <- c("", '9999', '999', '99999')
 selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
+
+
+allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
+
+data_sliac <- data.table::rbindlist(lapply(allfiles, function(x) cbind(fread(x, fill = T), gsub(".csv", "", x))), fill = T)
+
+```
+
+```{r}
+
+# data_2019 <- read.csv('./data/2019.csv', na.strings = NA_values) 
+# View(data_2019)
 
 data_2019 <- read.csv('../data/2019.csv', na.strings = NA_values) 
 
