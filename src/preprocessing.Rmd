@@ -8,6 +8,7 @@ output: html_document
 # install.packages("funModeling")
 # install.packages("Hmisc")
 # install.packages('data.table')
+library(lubridate)
 library(tidyverse)
 library(Hmisc)
 library(data.table)
@@ -20,11 +21,9 @@ library(funModeling)
 
 process_col <- function(val, scaling = 1) {
   if (is.na(val) || val %in% NA_values){
-    return (NA)
+    val <- NA
   }
-  else {
-    return (as.numeric(val)/scaling)
-  }
+  return (as.numeric(val)/scaling)
 } 
 
 ```
@@ -47,7 +46,7 @@ data_sliac <- as.data.frame(data_sliac)
 
 ```{r}
 
-data_sliac <- read.csv('../data/2019.csv')
+data_sliac <- read.csv('../data/2010.csv')
 
 mandatory_data <- data_sliac %>%
   separate(TMP, c('TMP', NA), sep=',')  %>% 
@@ -76,10 +75,17 @@ View(mandatory_data)
 
 ```{r NA, eval=FALSE}
 
-mandatory_data %>%
-  dplyr::mutate(DAY = map(.$DATE, as.Date)) %>%
-  dplyr::group_by(DAY) %>%
+
+mean_tmp <- mandatory_data %>%
+  dplyr::mutate(DAY =  ymd_hms(DATE)) %>%
+  dplyr::group_by(month=floor_date(DAY, unit="month")) %>%
   dplyr::summarise(mean = mean(TMP)) 
+
+months <- c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
+
+ggplot(data = mean_tmp) + 
+  geom_col(mapping=aes(x=factor(months,months), y=mean)) +
+  labs(title="Priemerna mesačná teplota za rok 2019", y="Teplota", x="Mesiace")
 ```
 
 ### Firstly we must have a look at temperature 
