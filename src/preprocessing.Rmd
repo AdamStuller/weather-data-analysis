@@ -96,6 +96,14 @@ ggplot(data = mean_tmp) +
   labs(title="Priemerna mesačná teplota za rok 2019", y="Teplota", x="Mesiace")
 ```
 
+
+```{r}
+ggplot(data = mandatory_data, aes(sample=TMP)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+
 ### Firstly we must have a look at temperature 
 
 According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
@@ -168,6 +176,11 @@ boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
 #boxplot.stats(mandatory_data$TMP)$out
 
 ```
+
+```{r}
+
+```
+
 
 ### Wind angle
 
