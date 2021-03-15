@@ -33,7 +33,7 @@ process_col <- function(val, scaling = 1) {
 ```{r setup}
 
 NA_values <- c("", '9999', '999', '99999')
-selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
+selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION','SNOW_DEPTH', 'PWO', 'NAME','GSO')
 
 
 allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
@@ -55,6 +55,9 @@ mandatory_data <- data_sliac %>%
   separate(SLP, c('SLP', NA)) %>% 
   separate(CIG, c('CIG', NA, NA, NA)) %>% 
   separate(DEW, c('DEW', NA), sep=',') %>% 
+  separate(AJ1, c('SNOW_DEPTH', NA, NA, NA, NA, NA, NA)) %>%
+  separate(AY1, c('PWO', NA, NA, NA)) %>% 
+  separate(IA1, c('GSO', NA)) %>%
   dplyr::mutate(
     TMP = map_dbl(.$TMP,  process_col, 10),
     WND_ANGLE = map_dbl(.$WND_ANGLE, process_col),
@@ -63,13 +66,18 @@ mandatory_data <- data_sliac %>%
     SLP = map_dbl(.$SLP, process_col, 10),
     CIG = map_dbl(.$CIG, process_col),
     DEW = map_dbl(.$DEW, process_col, 10),
-    #DATE = map(.$DATE, ~ as.Date(.x))
-    
+    SNOW_DEPTH = map_dbl(.$SNOW_DEPTH, process_col),
+    PWO = dplyr::na_if(PWO, ""),
+    GSO = dplyr::na_if(GSO, "")
   ) %>%
   dplyr::select(all_of(selected_cols))
 
 View(mandatory_data)
 ```
+
+
+
+
 
 # Mean daily temperature
 
@@ -265,3 +273,21 @@ boxplot(mandatory_data$CIG, col = 7, ylab = "CIG", main = "Ceiling boxplot")
 #corr <- cor(mandatory_data[,3:8], use = "na.or.complete")
 
 ```
+
+
+# PWO column
+
+PWO_LABEL = case_when(
+      PWO == 0 ~ "Cloud covering less then 1/2",
+      PWO == 1 ~ "Cloud covering +- 1/2",
+      PWO == 2 ~ "Cloud covering more then 1/2",
+      PWO == 3 ~ "Sandstorm, duststorm or blowing snow",
+      PWO == 4 ~ "Fog or ice fog or thick haze",
+      PWO == 5 ~ "Drizzle",
+      PWO == 6 ~ "Rain",
+      PWO == 7 ~ "Snow, or rain and snow mixed",
+      PWO == 8 ~ "Shower(s)",
+      PWO == 9 ~ "Thunderstorm(s)",
+      TRUE     ~ as.character(PWO)
+    ),
+
