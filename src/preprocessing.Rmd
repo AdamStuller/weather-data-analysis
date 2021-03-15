@@ -32,7 +32,7 @@ process_col <- function(val, scaling = 1) {
 
 ```{r setup}
 
-NA_values <- c("", '9999', '999', '99999')
+NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999', '+99999', '+999999')
 selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION', 'NAME')
 
 
@@ -41,12 +41,13 @@ allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
 data_sliac <- data.table::rbindlist(lapply(allfiles, function(x) cbind(fread(x, fill = T), gsub(".csv", "", x))), fill = T)
 
 data_sliac <- as.data.frame(data_sliac)
+#View(data_sliac)
 
 ```
 
 ```{r}
 
-data_sliac <- read.csv('../data/2010.csv')
+#data_sliac <- read.csv('../data/2010.csv')
 
 mandatory_data <- data_sliac %>%
   separate(TMP, c('TMP', NA), sep=',')  %>% 
@@ -71,10 +72,107 @@ mandatory_data <- data_sliac %>%
 View(mandatory_data)
 ```
 
+
+## Split date into seperated columns
+## Filter each 6 hours
+
+```{r}
+
+mandatory_date_split <- mutate(mandatory_data, day = mday(DATE), month = month(DATE), year = year(DATE), 
+                   hour = hour(DATE), min = minute(DATE))
+mandatory_date_split
+
+# Select each 6 hours
+data_6_hours <- mandatory_date_split %>% filter(hour %in% c(0,6,12,18))
+data_6_hours
+
+# Select January 2010
+jan_2010 <- filter(data_6_hours, month == 1, year == 2010)
+jan_2010
+
+ggplot(data = jan_2010) + 
+  geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
+  geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
+  labs(title = "Temperature 2020", y = "TMP") 
+
+
+# Select January 2020
+jan_2020 <- filter(data_6_hours, month == 1, year == 2020)
+jan_2020
+
+ggplot(data = jan_2020) + 
+  geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
+  geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
+  labs(title = "Temperature 2020", y = "TMP") 
+ 
+# Mean TMP 2010
+mean_2010 <- filter(data_6_hours, year == 2010)
+
+mean_tmp_2010 <- mean_2010 %>% group_by(month) %>% summarise(mean = mean(TMP))
+mean_tmp_2010
+
+ggplot(mean_tmp_2010) + 
+  geom_col(mapping = aes(x = month, y = mean, fill = as.factor(month))) +
+  geom_line(mapping = aes(x = month, y = mean), size = 0.8)
+
+
+# Mean TMP 2020
+mean_2020 <- filter(data_6_hours, year == 2020)
+
+mean_tmp_2020 <- mean_2020 %>% group_by(month) %>% summarise(mean = mean(TMP))
+mean_tmp_2020
+
+ggplot(mean_tmp_2020) + 
+  geom_col(mapping = aes(x = month, y = mean, fill = as.factor(month))) +
+  geom_line(mapping = aes(x = month, y = mean), size = 0.8)
+  
+
+```
+
+
+```{r}
+
+# modus
+getmode <- function(v) {
+   uniqv <- unique(v)
+   uniqv[which.max(tabulate(match(v, uniqv)))]
+}
+
+getmode(na.omit(mandatory_data$TMP))
+getmode(na.omit(mandatory_data$WND_ANGLE))
+getmode(na.omit(mandatory_data$WND_SPEED))
+getmode(na.omit(mandatory_data$VIS))
+getmode(na.omit(mandatory_data$SLP))
+getmode(na.omit(mandatory_data$CIG))
+getmode(na.omit(mandatory_data$DEW))
+
+
+
+# ggplot
+
+x <- qqnorm(mandatory_data$TMP)
+abline(0,1, col = "red")
+
+plot.qqline(mandatory_data$TMP)
+#qqline(mandatory_data$TMP)
+
+ggplot(mandatory_data$TMP)+
+  geom_line()
+plot(qqline(mandatory_data$TMP))
+
+qplot(sample = TMP, data = mandatory_data) +
+  stat_qq()
+
+ggplot(mandatory_data, aes(sample=TMP),  na.rm = T)+stat_qq(na.rm = T) + 
+  geom_abline()
+
+```
+
+
+
 # Mean daily temperature
 
 ```{r NA, eval=FALSE}
-
 
 mean_tmp <- mandatory_data %>%
   dplyr::mutate(DAY =  ymd_hms(DATE)) %>%
@@ -107,6 +205,9 @@ SCALING FACTOR: 10
 DOM: A general domain comprised of the numeric characters (0-9), a plus sign (+), and a minus sign (-).
 
 +9999 = Missing.
+
+
+
 
 
 
@@ -151,13 +252,11 @@ mandatory_data['TMP'] %>% profiling_num()
 hist(mandatory_data$TMP,
   xlab = "TMP",
   main = "Temperature histogram",
-  breaks = sqrt(nrow(mandatory_data)/2),
+  breaks = 50,
   col = 2
 )
 
 boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
-
-#boxplot.stats(mandatory_data$TMP)$out
 
 ```
 
@@ -177,8 +276,6 @@ hist(mandatory_data$WND_ANGLE,
 
 boxplot(mandatory_data$WND_ANGLE, col = 3, ylab = "WND_ANGLE", main = "Wind angle boxplot")
 
-#boxplot.stats(mandatory_data$WND_ANGLE)$out
-
 ```
 
 ### Wind speed
@@ -196,8 +293,6 @@ hist(mandatory_data$WND_SPEED,
 )
 
 boxplot(mandatory_data$WND_SPEED, col = 4, ylab = "WND_SPEED", main = "Wind speed boxplot")
-
-#boxplot.stats(mandatory_data$WND_SPEED)$out
 
 ```
 
@@ -217,8 +312,6 @@ hist(mandatory_data$VIS,
 
 boxplot(mandatory_data$VIS, col = 5, ylab = "VIS", main = "Visibility boxplot")
 
-#boxplot.stats(mandatory_data$VIS)$out
-
 ```
 
 ### Pressure
@@ -237,7 +330,6 @@ hist(mandatory_data$SLP,
 
 boxplot(mandatory_data$SLP, col = 6, ylab = "SLP", main = "Pressure boxplot")
 
-#boxplot.stats(mandatory_data$SLP)$out
 ```
 
 ### Ceiling
@@ -256,10 +348,25 @@ hist(mandatory_data$CIG,
 
 boxplot(mandatory_data$CIG, col = 7, ylab = "CIG", main = "Ceiling boxplot")
 
-#boxplot.stats(mandatory_data$CIG)$out
-
 ```
 
+### Dew
+
+```{r}
+summary(mandatory_data$DEW)
+mandatory_data['DEW'] %>% profiling_num()
+
+
+hist(mandatory_data$CIG,
+  xlab = "DEW",
+  main = "Dew histogram",
+  breaks = 20,
+  col = 7
+)
+
+boxplot(mandatory_data$CIG, col = 7, ylab = "DEW", main = "Dew boxplot")
+
+```
 
 ```{r}
 #corr <- cor(mandatory_data[,3:8], use = "na.or.complete")
