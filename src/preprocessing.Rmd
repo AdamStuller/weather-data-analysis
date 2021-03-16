@@ -35,6 +35,7 @@ process_col <- function(val, scaling = 1) {
 NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999')
 selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION','SNOW_DEPTH', 'PWO', 'NAME','GSO')
 
+
 allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
 data_sliac <- data.table::rbindlist(lapply(allfiles, function(x) cbind(fread(x, fill = T), gsub(".csv", "", x))), fill = T)
 data_sliac <- as.data.frame(data_sliac)
