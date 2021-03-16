@@ -19,6 +19,8 @@ library(funModeling)
 
 ```{r NA, echo=FALSE}
 
+NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999')
+
 process_col <- function(val, scaling = 1) {
   if (is.na(val) || val %in% NA_values){
     val <- NA
@@ -31,8 +33,6 @@ process_col <- function(val, scaling = 1) {
 ## Loading of documents (years 2010 - 2020)
 
 ```{r setup}
-
-NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999')
 selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION','SNOW_DEPTH', 'PWO', 'NAME','GSO')
 
 
@@ -43,8 +43,6 @@ data_sliac <- as.data.frame(data_sliac)
 ```
 
 ```{r}
-
-# data_sliac <- read.csv('../data/2010.csv')
 
 mandatory_data <- data_sliac %>%
   separate(TMP, c('TMP', NA), sep=',')  %>% 
@@ -58,6 +56,7 @@ mandatory_data <- data_sliac %>%
   separate(IA1, c('GSO', NA)) %>%
   dplyr::mutate(
     TMP = map_dbl(.$TMP,  process_col, 10),
+    TMP = na_if(TMP, 999.9),
     WND_ANGLE = map_dbl(.$WND_ANGLE, process_col),
     WND_SPEED = map_dbl(.$WND_SPEED, process_col, 10),
     VIS = map_dbl(.$VIS, process_col),
@@ -185,7 +184,112 @@ ggplot(data = mean_tmp) +
   labs(title="Priemerna mesačná teplota za rok 2019", y="Teplota", x="Mesiace")
 ```
 
-**Firstly we must have a look at temperature**
+
+
+```{r}
+ggplot(data = mandatory_data, aes(sample=TMP)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+
+### Firstly we must have a look at temperature 
+```{r}
+#quantile(mandatory_data$TMP)
+
+df <- mandatory_data %>%
+  dplyr::select('TMP') %>%
+  tidyr::gather(key='label', value = 'temp')
+
+ggplot(data = df, aes(factor(label), temp, fill=label)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+```
+
+
+```{r}
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'TMP')))
+
+ggplot(data = df, aes(factor(year), TMP, fill=year)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+
+```
+
+
+```{r}
+
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'TMP')))
+
+ggplot(data = df, aes( TMP,factor(year), colour=year)) +
+  geom_jitter() 
+``` 
+
+```{r}
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'TMP')))
+
+ggplot(data = df, aes( TMP,factor(year), colour=year)) +
+  geom_boxplot() 
+```
+# Kruhovy graf G17
+
+Dufal som ze to bude jednoduche ale exponencialne rozdelenie aj normalne aj to nase mi dava uplne presne kruhy, takze tak bude asi nejaka chyba... pockame, kum to Michal urobi pre erko. 
+
+```{r}
+n <- nrow(mandatory_data)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+Vx <- lo * cos(pi * mandatory_data$TMP)
+Vy <- lo * sin(pi * mandatory_data$TMP)
+
+ggplot(mapping=aes( x=Vx, y=Vy)) +
+  geom_point() + 
+  coord_fixed()
+```
+```{r}
+normal_dist <- rnorm(-20:40, n = 2000) 
+
+n <- length(normal_dist)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+Vx <- lo * cos(pi * normal_dist)
+Vy <- lo * sin(pi * normal_dist)
+
+ggplot(mapping=aes( x=Vx, y=Vy)) +
+  geom_point() + 
+  coord_fixed()
+
+```
+```{r}
+exp_dist <- rexp(20000)
+
+n <- length(exp_dist)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+e_Vx <- lo * cos(pi * exp_dist)
+e_Vy <- lo * sin(pi * exp_dist)
+
+ggplot(mapping=aes( x=e_Vx, y=e_Vy)) +
+  geom_point() + 
+  coord_fixed()
+```
+
 
 According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
 
@@ -341,6 +445,11 @@ stripchart(TMP~month,
 
 
 ```
+
+```{r}
+
+```
+
 
 ### Wind angle
 
