@@ -8,11 +8,14 @@ output: html_document
 # install.packages("funModeling")
 # install.packages("Hmisc")
 # install.packages('data.table')
+install.packages('corrplot')
 library(lubridate)
 library(tidyverse)
 library(Hmisc)
 library(data.table)
 library(funModeling)
+
+library(corrplot)
 ```
 
 
@@ -80,8 +83,7 @@ mandatory_data <- data_sliac %>%
 
 ```{r}
 
-mandatory_date_split <- mutate(mandatory_data, day = mday(DATE), month = month(DATE), year = year(DATE), 
-                   hour = hour(DATE), min = minute(DATE))
+mandatory_date_split <- mutate(mandatory_data, day = mday(DATE), month = month(DATE), year = year(DATE), hour = hour(DATE), min = minute(DATE))
 
 # Select each 6 hours
 data_6_hours <- mandatory_date_split %>% filter(hour %in% c(0,6,12,18))
@@ -547,7 +549,15 @@ boxplot(mandatory_data$CIG, col = 7, ylab = "CIG", main = "Ceiling boxplot")
 
 
 ```{r}
-#corr <- cor(mandatory_data[,3:8], use = "na.or.complete")
+# korelacie vybranych numerickych atributov - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW
+mdata_select <- select(mandatory_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW)
+mdata_cor <- cor(mdata_select, use = "na.or.complete")
+
+corrplot(mdata_cor, tl.col = "black", order = "AOE")
+corrplot(mdata_cor, method = "shade", shade.col = NA, tl.col = "black", addCoef.col = "black", order = "AOE")
+
+# Najvyššia korelácia je medzi TMP a DEW, slabá korelácia medzi TMP a VIS a medzi VIS a CIG. 
+# Veľmi slabú zápornú koreláciu má aj SLP so stĺpcami DEW a TMP. 
 
 ```
 
