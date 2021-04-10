@@ -8,7 +8,7 @@ output: html_document
 # install.packages("funModeling")
 # install.packages("Hmisc")
 # install.packages('data.table')
-install.packages('corrplot')
+# install.packages('corrplot')
 library(lubridate)
 library(tidyverse)
 library(Hmisc)
@@ -356,9 +356,11 @@ Medzikvartilová odchýlka (IQR/2) je 7.05, čo je v porovnaní so smerodajnou o
 
 Variačné rozpätie je 62.3. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou teploty. Jeho veľkosť závisí iba od krajných hodnôt, pričom v tomto prípade spodná hranica patrí medzi odľahlé hodnoty. Preto variačné rozpätie mimo odľahlých hodnôt bude o niečo menšie.
 
+Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 0.99, čo je 99%, čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
 
 
 
+**Boxplot**
 Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Krabica zobrazuje rozsah v ktorom sa nachádza 50% hodnôt - medzikvartilové rozpätie, čo je hodnota 3.kvartilu - hodnota 1. kvartilu. Hodnota 3.kvartilu je 17 a hodnota 1. kvartilu 2.9, teda medzikvartilové rozpätie (IQR) je 17 - 2.9 = 14.1. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou. Kedže sa nachádza v strede, dáta nie sú zošikmené ale sú rovnomerne rozptýlené okolo strednej hodnoty.
 
 Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
@@ -377,11 +379,18 @@ Takéto hodnoty sa v našich dátach nevyskytujú.
 Špicatosť vyjadruje rozloženie dát v súbore. Hodnota špicatosti je 2.607313, je menšia ako 3 teda hodnoty majú trocha plochšie rozdelenie ako je normálne. To znamená, že v súbore máme trocha viac hodnôt, ktoré nie sú blízko k priemeru.
 
 
+**Odhad hustoty teploty**
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara). Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlnený oproti normálnemu rozdeleniu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia.
+
+
 ```{r}
 summary(mandatory_data$TMP)
 mandatory_data['TMP'] %>% profiling_num()
 
 var(mandatory_data$TMP, na.rm = T) # rozptyl
+
+EnvStats::cv(mandatory_data$TMP, na.rm = T) # variacny koeficient
+
 
 # Interquartile range and outliers
 Q1 <- quantile(mandatory_data$TMP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
@@ -398,7 +407,6 @@ length(which(mandatory_data$TMP < (Q1 - 3*IQR)))
 length(which(mandatory_data$TMP > (Q3 + 3*IQR)))
 
 
-
 # histogram
 ggplot(mandatory_data, aes(x=TMP)) + 
   geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
@@ -413,9 +421,7 @@ ggplot(mandatory_data, aes(x=TMP)) +
 boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
 
 
-# denisty plot - porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara)a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara)
-# Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlenný oproti normálnemu rozdeleniu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia.
-
+# denisty plot 
 # data z normalneho rozdelenia
 data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$TM)), mean(mandatory_data$TMP, na.rm = T), sd(mandatory_data$TMP, na.rm = T))))
 
@@ -432,18 +438,16 @@ ggplot(mandatory_data, aes(x=TMP),color = 3) +
 
 
 
+# polosum
+tmp <- mandatory_data$TMP
+tmp_asc <- sort(tmp, decreasing = FALSE)
+tmp_desc <- sort(tmp, decreasing = TRUE)
 
-# diagram rozptylenia
-stripchart(TMP~month,
-  data = mandatory_date_split,
-  main = "Different strip chart for each month",
-  xlab = "Months",
-  ylab = "Temperature",
-  col = 2,
-  group.names = months,
-  vertical = F,
-  pch = 1
-)
+ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) + 
+  geom_point(size = 2, color = 2) +
+  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
+  labs(title = "Graf polosum pre teplotu", x = "Teplota") +
+  theme_bw()
 
 
 ```
