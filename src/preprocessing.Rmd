@@ -582,3 +582,8 @@ PWO_LABEL = case_when(
       TRUE     ~ as.character(PWO)
     ),
 
+
+```{r}
+pairs(~TMP + SLP+DEW+VIS+WND_SPEED+CIG+WND_ANGLE+ SLP, data=mandatory_data)
+```
+
