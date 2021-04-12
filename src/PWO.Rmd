@@ -1,0 +1,48 @@
+---
+title: "DEW"
+author: "Adam Stuller"
+date: "4/12/2021"
+output: html_document
+---
+
+# PWO - Past weather observation
+
+
+
+### Centralna poloha dat
+
+Hodnota vyberoveho medianu je 1016,6 hP, modus je 1015,4 a vyberovy priemer je 1017.057, co nam hovori o tom, ze priemer je relativne dobry ukazovatelom v tychto datach a nie je vychyleny outliermi. 
+
+```{r}
+getmode(na.omit(mandatory_data$PWO))
+median(mandatory_data$PWO, na.rm = TRUE)
+mean(mandatory_data$PWO, na.rm = TRUE)
+``` 
+
+
+### Variabilita 
+
+Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+
+```{r}
+var(mandatory_data$DEW, na.rm = T) # rozptyl
+
+EnvStats::cv(mandatory_data$DEW, na.rm = T) # variacny koeficient
+```
+
+
+### Asymetria
+
+### Histogram 
+```{r}
+df <- mandatory_data %>%
+  dplyr::select(PWO) %>%
+  dplyr::filter(!is.na(PWO))
+
+ggplot(df, aes(x=PWO)) + 
+  geom_bar()
+```
+
+
+Jedna sa o kategoricu velicinu, s velkym mnozstvom NA hdnot. Na sa tam objavuju iba preto, ze sa tato velicina merala v konkretnych intervaloch a medzi nimi nie. Na sa zbavime tak, ze nakopirujeme hodnoty posledneho merania do merani medz nimi
+
