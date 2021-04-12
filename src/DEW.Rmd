@@ -1,0 +1,145 @@
+---
+title: "DEW"
+author: "Adam Stuller"
+date: "4/12/2021"
+output: html_document
+---
+
+# DEW - rosny bod
+
+
+
+### Centralna poloha dat
+
+Hodnota vyberoveho medianu je 1016,6 hP, modus je 1015,4 a vyberovy priemer je 1017.057, co nam hovori o tom, ze priemer je relativne dobry ukazovatelom v tychto datach a nie je vychyleny outliermi. 
+
+```{r}
+getmode(na.omit(mandatory_data$DEW))
+median(mandatory_data$DEW, na.rm = TRUE)
+mean(mandatory_data$DEW, na.rm = TRUE)
+``` 
+
+
+### Variabilita 
+
+Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+
+```{r}
+var(mandatory_data$DEW, na.rm = T) # rozptyl
+
+EnvStats::cv(mandatory_data$DEW, na.rm = T) # variacny koeficient
+```
+
+
+### Asymetria
+
+### Histogram 
+```{r}
+ggplot(mandatory_data, aes(x=DEW)) + 
+  geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
+  labs(title = paste("DEW point histogram")) +
+  xlab("DEW - DEW point") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
+  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
+```
+
+
+
+### Boxplot 
+```{r}
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'DEW')))
+
+ggplot(data = df, aes( DEW,factor(year), colour=year)) +
+  geom_boxplot() 
+```
+
+
+```{r}
+df <- mandatory_data %>% 
+  dplyr::select('DEW') %>%
+  tidyr::gather(key='label', value = 'dewpoint')
+
+ggplot(data = df, aes( dewpoint,factor(label), colour=label)) +
+  geom_boxplot() 
+```
+
+
+### Violin 
+```{r}
+df <- mandatory_data %>%
+  dplyr::select('DEW') %>%
+  tidyr::gather(key='label', value = 'dewpoint')
+
+ggplot(data = df, aes(factor(label), dewpoint, fill=label)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+```
+
+### Q-Q plot 
+
+```{r}
+ggplot(data = mandatory_data, aes(sample=DEW)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+Diagram Rozptylenia
+```{r}
+df <- mandatory_data %>%
+  dplyr::select('DEW') %>%
+  tidyr::gather(key='label', value = 'dewpoint')
+
+ggplot(data = df, aes( dewpoint,factor(label), colour=label)) +
+  geom_jitter() 
+```
+
+
+```{r}
+
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'DEW')))
+
+ggplot(data = df, aes( DEW,factor(year), colour=year)) +
+  geom_jitter() 
+``` 
+
+
+
+### Graf polosum 
+
+```{r}
+slp <- mandatory_data$DEW
+slp_asc <- sort(slp, decreasing = FALSE)
+slp_desc <- sort(slp, decreasing = TRUE)
+
+ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) + 
+  geom_point(size = 2, color = 2) +
+  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
+  labs(title = "Graf polosum pre atmosfericky tlak", x = "Tlak") +
+  theme_bw()
+```
+### Kruhovy graf
+```{r}
+n <- nrow(mandatory_data)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+Vx <- lo * cos(pi * mandatory_data$DEW)
+Vy <- lo * sin(pi * mandatory_data$DEW)
+
+ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
+  geom_point() + 
+  coord_fixed()
+```
+
+

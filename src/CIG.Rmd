@@ -1,0 +1,147 @@
+---
+title: "Untitled"
+author: "Adam Stuller"
+date: "4/12/2021"
+output: html_document
+---
+
+# CIG
+SKY-CONDITION-OBSERVATION ceiling height dimension
+
+### Centralna poloha dat
+
+Hodnota vyberoveho medianu je 1463, modus je 22000 a vyberovy priemer je 5935.329. 
+
+```{r}
+getmode(na.omit(mandatory_data$CIG))
+median(mandatory_data$CIG, na.rm = TRUE)
+mean(mandatory_data$CIG, na.rm = TRUE)
+``` 
+
+
+### Variabilita 
+
+Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+
+```{r}
+var(mandatory_data$CIG, na.rm = T) # rozptyl
+
+EnvStats::cv(mandatory_data$CIG, na.rm = T) # variacny koeficient
+```
+
+
+### Asymetria
+
+### Histogram 
+```{r}
+ggplot(mandatory_data, aes(x=CIG)) + 
+  geom_histogram(bins = 10, binwidth = 500,fill="2", color="#e9ecef") +
+  labs(title = paste("ceiling height histogram")) +
+  xlab("CIG - ceiling height") +
+  ylab("Frequency") 
+```
+
+### Boxplot 
+
+```{r}
+df <- mandatory_data %>% 
+  dplyr::select('CIG') %>%
+  tidyr::gather(key='label', value = 'ceiling')
+
+ggplot(data = df, aes( ceiling,factor(label), colour=label)) +
+  geom_boxplot() 
+```
+Cudne maximum 
+```{r}
+na.omit(mandatory_data$CIG) %>% max
+```
+
+```{r}
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'CIG')))
+
+ggplot(data = df, aes( CIG,factor(year), colour=year)) +
+  geom_boxplot() 
+```
+Opat je 2017 rok zaujimavy
+
+### Violin 
+```{r}
+df <- mandatory_data %>%
+  dplyr::select('CIG') %>%
+  tidyr::gather(key='label', value = 'ceiling')
+
+ggplot(data = df, aes(factor(label), ceiling, fill=label)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+```
+
+
+
+### Q-Q plot 
+
+```{r}
+ggplot(data = mandatory_data, aes(sample=CIG)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+
+Diagram Rozptylenia
+```{r}
+df <- mandatory_data %>%
+  dplyr::select('CIG') %>%
+  tidyr::gather(key='label', value = 'ceiling')
+
+ggplot(data = df, aes( ceiling,factor(label), colour=label)) +
+  geom_jitter() 
+```
+
+
+
+```{r}
+
+df <- mandatory_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'CIG')))
+
+ggplot(data = df, aes( CIG,factor(year), colour=year)) +
+  geom_jitter() 
+``` 
+
+
+### Graf polosum 
+
+```{r}
+cig <- mandatory_data$CIG
+cig_asc <- sort(cig, decreasing = FALSE)
+cig_desc <- sort(cig, decreasing = TRUE)
+
+ggplot(data.frame(cig_asc), aes(x = cig_asc, y = 0.5*(cig_asc+cig_desc))) + 
+  geom_point(size = 2, color = 2) +
+  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
+  labs(title = "Graf polosum pre ceiling", x = "Celiling") +
+  theme_bw()
+```
+
+
+### Kruhovy graf
+```{r}
+n <- nrow(mandatory_data)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+Vx <- lo * cos(pi * mandatory_data$CIG)
+Vy <- lo * sin(pi * mandatory_data$CIG)
+
+ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
+  geom_point() + 
+  coord_fixed()
+```
