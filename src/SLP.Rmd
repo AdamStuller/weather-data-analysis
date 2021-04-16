@@ -9,38 +9,72 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
-# SLP stlpec EDA
-## Atmosfericky tlak v hektopascaloch
-
+# SLP -  Atmosfericky tlak v hektopascaloch
 
 ### Centralna poloha dat
 
-Hodnota vyberoveho medianu je 1016,6 hP, modus je 1015,4 a vyberovy priemer je 1017.057, co nam hovori o tom, ze priemer je relativne dobry ukazovatelom v tychto datach a nie je vychyleny outliermi. 
+Hodnota vyberoveho medianu je 1016.9 hP, modus je 1017 a vyberovy priemer je 1017.295. Priemer je teda dobry ukazatel a data zjavne nie su ovplivnene velkym mnozstvom outlierov ale ukazatele centralnej polohy su velmi silne.
 
 ```{r}
-getmode(na.omit(mandatory_data$SLP))
-median(mandatory_data$SLP, na.rm = TRUE)
-mean(mandatory_data$SLP, na.rm = TRUE)
-``` 
+getmode(na.omit(all_data$SLP)) %>%
+  print(cat("Modus: " ))
 
+median(all_data$SLP, na.rm = TRUE) %>%
+  print(cat("Median: "))
 
-### Variabilita 
-
-Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
-
-```{r}
-var(mandatory_data$SLP, na.rm = T) # rozptyl
-
-EnvStats::cv(mandatory_data$SLP, na.rm = T) # variacny koeficient
+mean(all_data$SLP, na.rm = TRUE) %>%
+  print(cat("Mean: "))
 ```
 
+### Variabilita
+
+Vyberovy rozptyl je 67.58904 a smerodajna odchylka 8.221255 . Variancny koeficient je 0.008081483 alebo v percentach 0,8%. Vsetko to hovori o tom, ze data pri tlaku su relativne nakope a s malou variabilitou.
+
+Variacne rozpatie je 78.8 teda rozdiel medzi najmensim a najvacsim prvkom nie je velmi velky. Vychadza to pravdaze z podstatty atmosferickeho tlaku a jednotiek v ktorych bol namerany.
+
+Medzikvantilova odchýlka je **4.95.** Je to o dost mensie cislo a hovori nam to o tom, ze velka vacsina dat sa nachadza nakope okolo stednej hodnoty.
+
+Hodnota prvého a tretieho kvartilu je 1012, resp. 1022. Polovica dát sa teda nachadza v rospetí iba 10.
+
+```{r}
+max_slp <- max(all_data$SLP, na.rm= TRUE)
+min_slp <- min(all_data$SLP, na.rm= TRUE)
+var_rozpatie <- max_slp - min_slp
+print(cat("Variacne rozpatie", var_rozpatie))
+```
+
+```{r}
+# Interquartile range
+Q1_slp <- quantile(mandatory_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(mandatory_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(mandatory_data$SLP, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+
+
+```
+
+```{r}
+var(all_data$SLP, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
+
+EnvStats::cv(all_data$SLP, na.rm = T)%>% print(cat("Variacny koeficient: ")) # variacny koeficient
+```
+
+```{r}
+summary(all_data$SLP)
+all_data['SLP'] %>% profiling_num()
+```
 
 ### Asymetria
 
-### Histogram 
+Šikmost (skewness) je 0.1264733. Je mierne kladna, teda rozdelenie je mierne zasikmene do lava.
+
+Špicatost (kurtosis) - 3.539679 je lladna teda mierne spicatejsia pre tlak ako pre data z normálneho rozdelenia.
+
+### Histogram
+
 ```{r}
-ggplot(mandatory_data, aes(x=SLP)) + 
+ggplot(all_data, aes(x=SLP)) + 
   geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
   labs(title = paste("Atmospheric pressure histogram")) +
   xlab("SLP - Atmospheric pressure") +
@@ -49,9 +83,10 @@ ggplot(mandatory_data, aes(x=SLP)) +
   scale_y_continuous(breaks = seq(0, 20000, by = 2000))
 ```
 
-### Boxplot 
+### Boxplot
+
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -60,48 +95,39 @@ df <- mandatory_data %>%
   dplyr::select(all_of(c('year', 'SLP')))
 
 ggplot(data = df, aes( SLP,factor(year), colour=year)) +
-  geom_boxplot() 
-```
-### Problemy s rokom 2017
-
-Vidime, ze za rok 2017 nie su ziadne namerane hodnoty tlkau okrem jednej jedinej (ktora tu nie je upravena).
-
-```{r}
-data_sliac %>%
-  dplyr::mutate(
-    year = ymd_hms(DATE) %>% 
-      lubridate::year() %>% 
-      map_chr(~ as.character(.x))
-  ) %>%
-  dplyr::filter(year==2017) %>%
-  dplyr::select("SLP") %>%
-  dplyr::count(SLP)
-  
+  geom_boxplot() +
+  labs(title = paste("Atmospheric pressure boxplot, individual years")) +
+  xlab("SLP - Atmospheric pressure") +
+  ylab("Year") 
 ```
 
-
-
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::select('SLP') %>%
   tidyr::gather(key='label', value = 'pressure')
 
 ggplot(data = df, aes( pressure,factor(label), colour=label)) +
-  geom_boxplot() 
+  geom_boxplot() +
+  labs(title = paste("Atmospheric pressure boxplot")) +
+  xlab("") +
+  ylab("") 
 ```
 
+### Violin
 
-### Violin 
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('SLP') %>%
   tidyr::gather(key='label', value = 'pressure')
 
 ggplot(data = df, aes(factor(label), pressure, fill=label)) +
-  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))+
+  labs(title = paste("Atmospheric pressure violin plot")) +
+  xlab("") +
+  ylab("SLP - Atmospheric pressure") 
 ```
 
-### Q-Q plot 
+### Q-Q plot
 
 ```{r}
 ggplot(data = mandatory_data, aes(sample=SLP)) +
@@ -109,20 +135,24 @@ ggplot(data = mandatory_data, aes(sample=SLP)) +
   stat_qq_line()
 ```
 
-Diagram Rozptylenia
+### Diagram Rozptylenia
+
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('SLP') %>%
   tidyr::gather(key='label', value = 'pressure')
 
 ggplot(data = df, aes( pressure,factor(label), colour=label)) +
-  geom_jitter() 
-```
+  geom_jitter() +
+  labs(title = paste("Diagram rozptylenia pre atmosfericky tlak")) +
+  xlab("SLP - Atmosfericky  tlak") +
+  ylab("") 
 
+```
 
 ```{r}
 
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -132,14 +162,12 @@ df <- mandatory_data %>%
 
 ggplot(data = df, aes( SLP,factor(year), colour=year)) +
   geom_jitter() 
-``` 
+```
 
-
-
-### Graf polosum 
+### Graf polosum
 
 ```{r}
-slp <- mandatory_data$SLP
+slp <- all_data$SLP
 slp_asc <- sort(slp, decreasing = FALSE)
 slp_desc <- sort(slp, decreasing = TRUE)
 
@@ -149,17 +177,17 @@ ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) +
   labs(title = "Graf polosum pre atmosfericky tlak", x = "Tlak") +
   theme_bw()
 ```
+
 ### Kruhovy graf
+
 ```{r}
-n <- nrow(mandatory_data)
+n <- nrow(all_data)
 lo <- (n * (n - 1) / 2)^(-1 / 2)
 
-Vx <- lo * cos(pi * mandatory_data$SLP)
-Vy <- lo * sin(pi * mandatory_data$SLP)
+Vx <- lo * cos(pi * all_data$SLP)
+Vy <- lo * sin(pi * all_data$SLP)
 
 ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
   geom_point() + 
   coord_fixed()
 ```
-
-

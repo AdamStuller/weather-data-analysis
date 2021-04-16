@@ -13,9 +13,9 @@ SKY-CONDITION-OBSERVATION ceiling height dimension
 Hodnota vyberoveho medianu je 1463, modus je 22000 a vyberovy priemer je 5935.329. 
 
 ```{r}
-getmode(na.omit(mandatory_data$CIG))
-median(mandatory_data$CIG, na.rm = TRUE)
-mean(mandatory_data$CIG, na.rm = TRUE)
+getmode(na.omit(all_data$CIG))
+median(all_data$CIG, na.rm = TRUE)
+mean(all_data$CIG, na.rm = TRUE)
 ``` 
 
 

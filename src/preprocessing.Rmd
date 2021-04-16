@@ -33,21 +33,21 @@ process_col <- function(val, scaling = 1) {
 
 ```
 
-## Loading of documents (years 2010 - 2020)
+## Loading of documents (years 1973 - 2020)
 
 ```{r setup}
-selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW', 'LATITUDE', 'LONGITUDE', 'ELEVATION','SNOW_DEPTH', 'PWO', 'NAME','GSO')
-
-
-allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
-data_sliac <- data.table::rbindlist(lapply(allfiles, function(x) cbind(fread(x, fill = T), gsub(".csv", "", x))), fill = T)
-data_sliac <- as.data.frame(data_sliac)
-
+selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'SLP', 'CIG', 'DEW','SNOW_DEPTH', 'PWO','GSO')
 ```
 
 ```{r}
-
-mandatory_data <- data_sliac %>%
+read.csv(file= "../data/all_data.csv") %>% 
+  dplyr::filter(STATION == 11903099999 | STATION == 11927599999 ) %>%
+  dplyr::mutate(
+      year = ymd_hms(DATE) %>% 
+        lubridate::year() %>% 
+        map_chr(~ as.character(.x))
+    ) %>%
+  dplyr::filter(year >= 1973 & year <2021) %>%
   separate(TMP, c('TMP', NA), sep=',')  %>% 
   separate(WND, c('WND_ANGLE', NA, NA, 'WND_SPEED', NA)) %>%
   separate(VIS, c('VIS', NA, NA, NA)) %>% 
@@ -70,11 +70,14 @@ mandatory_data <- data_sliac %>%
     PWO = dplyr::na_if(PWO, ""),
     GSO = dplyr::na_if(GSO, "")
   ) %>%
-  dplyr::select(all_of(selected_cols))
-
-# View(mandatory_data)
+  dplyr::select(all_of(selected_cols)) %>% 
+  write.csv(file="../data/all.csv")
 ```
 
+```{r}
+all_data <- read.csv(file= "../data/all.csv")
+
+```
 
 
 ### Split date into seperated columns

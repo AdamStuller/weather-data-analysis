@@ -35,7 +35,7 @@ EnvStats::cv(mandatory_data$DEW, na.rm = T) # variacny koeficient
 
 ### Histogram 
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select(PWO) %>%
   dplyr::filter(!is.na(PWO))
 
@@ -46,3 +46,16 @@ ggplot(df, aes(x=PWO)) +
 
 Jedna sa o kategoricu velicinu, s velkym mnozstvom NA hdnot. Na sa tam objavuju iba preto, ze sa tato velicina merala v konkretnych intervaloch a medzi nimi nie. Na sa zbavime tak, ze nakopirujeme hodnoty posledneho merania do merani medz nimi
 
+```{r}
+
+df <- all_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'PWO')))
+
+ggplot(data = df, aes( PWO,factor(year), colour=year)) +
+  geom_jitter() 
+```

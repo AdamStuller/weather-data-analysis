@@ -19,9 +19,22 @@ median(mandatory_data$GSO, na.rm = TRUE)
 mean(mandatory_data$GSO, na.rm = TRUE)
 ``` 
 ```{r}
-mandatory_data %>%
+all_data %>%
   dplyr::select(GSO) %>%
   dplyr::count(GSO, sort=TRUE)
+```
+```{r}
+
+df <- all_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'GSO')))
+
+ggplot(data = df, aes( GSO,factor(year), colour=year)) +
+  geom_jitter() 
 ```
 
 
