@@ -27,7 +27,7 @@ getmode(na.omit(all_data$SLP)) %>%
 median(all_data$SLP, na.rm = TRUE) %>%
   print(cat("Median: "))
 
-mean(all_data$SLP, na.rm = TRUE) %>%
+mean(all_data$SLP, na.rm = TRUE)%>%
   print(cat("Mean: "))
 ```
 

@@ -7,38 +7,70 @@ output: html_document
 
 # DEW - rosny bod
 
-
+```{r}
+describe(all_data$DEW) 
+```
 
 ### Centralna poloha dat
 
-Hodnota vyberoveho medianu je 1016,6 hP, modus je 1015,4 a vyberovy priemer je 1017.057, co nam hovori o tom, ze priemer je relativne dobry ukazovatelom v tychto datach a nie je vychyleny outliermi. 
+Priemer je  4.5742, median 5. Tieto hodnoty su si dost blizke a vidime, ze data nie su velmi vychylene kvoli outlierom. Modus je ale 0, co je zaujimave.
 
 ```{r}
-getmode(na.omit(mandatory_data$DEW))
-median(mandatory_data$DEW, na.rm = TRUE)
-mean(mandatory_data$DEW, na.rm = TRUE)
+getmode(na.omit(all_data$DEW)) %>%
+  print(cat("Modus: " ))
+
+median(all_data$DEW, na.rm = TRUE) %>%
+  print(cat("Median: "))
+
+mean(all_data$DEW, na.rm = TRUE) %>%
+  print(cat("Mean: "))
 ``` 
 
 
 ### Variabilita 
 
-Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+Vyberovy rozptyl je 60.56788, standardna odchylka 7.782537 a variancny koeficient 1.701398, cize 170,14 %. To je dost vela a variancia je teda dost velka. 
+
+Medzikvartilova odchylka je iba 6
+
+Variacne rozpatie je 52.5 
 
 ```{r}
-var(mandatory_data$DEW, na.rm = T) # rozptyl
+max_dew <- max(all_data$DEW, na.rm= TRUE)
+min_dew <- min(all_data$DEW, na.rm= TRUE)
+var_rozpatie <- max_dew - min_dew
+print(cat("Variacne rozpatie", var_rozpatie))
 
-EnvStats::cv(mandatory_data$DEW, na.rm = T) # variacny koeficient
+# Interquartile range
+Q1 <- quantile(all_data$DEW, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(all_data$DEW, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(all_data$DEW, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+
+var(all_data$DEW, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
+
+EnvStats::cv(all_data$DEW, na.rm = T) %>% print(cat("Variacny koeficient: "))# variacny koeficient
 ```
 
-
+```{r}
+summary(all_data$DEW)
+all_data['DEW'] %>% profiling_num()
+```
 ### Asymetria
 
+Šikmost (skewness) je -0.3767112. Je teda zaporna a hovori, ze data su jemne nachylene doprava. 
+
+Špicatost (kurtosis) 2.6893 je kladna teda mierne spicatejsia ako normalne rozdelenie.
+
 ### Histogram 
+
+Data sa podobaju na normalne rozdelenie, aj ked vrchol je trosku dlhsi a plytkejsi. Nahnute su doprava a z tej straky su aj dost strme. 
 ```{r}
-ggplot(mandatory_data, aes(x=DEW)) + 
+ggplot(all_data, aes(x=DEW)) + 
   geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
-  labs(title = paste("DEW point histogram")) +
-  xlab("DEW - DEW point") +
+  labs(title = paste("Rosny bod - histogram")) +
+  xlab("Resny bod") +
   ylab("Frequency") +
   scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
   scale_y_continuous(breaks = seq(0, 20000, by = 2000))
@@ -48,7 +80,7 @@ ggplot(mandatory_data, aes(x=DEW)) +
 
 ### Boxplot 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -62,7 +94,7 @@ ggplot(data = df, aes( DEW,factor(year), colour=year)) +
 
 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::select('DEW') %>%
   tidyr::gather(key='label', value = 'dewpoint')
 
@@ -73,7 +105,7 @@ ggplot(data = df, aes( dewpoint,factor(label), colour=label)) +
 
 ### Violin 
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('DEW') %>%
   tidyr::gather(key='label', value = 'dewpoint')
 
@@ -83,15 +115,17 @@ ggplot(data = df, aes(factor(label), dewpoint, fill=label)) +
 
 ### Q-Q plot 
 
+Ako vidime aj tu, data sa mierne podobaju na normalne rozdelenie.
+
 ```{r}
-ggplot(data = mandatory_data, aes(sample=DEW)) +
+ggplot(data = all_data, aes(sample=DEW)) +
   stat_qq() + 
   stat_qq_line()
 ```
 
-Diagram Rozptylenia
+### Diagram Rozptylenia
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('DEW') %>%
   tidyr::gather(key='label', value = 'dewpoint')
 
@@ -102,7 +136,7 @@ ggplot(data = df, aes( dewpoint,factor(label), colour=label)) +
 
 ```{r}
 
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -119,7 +153,7 @@ ggplot(data = df, aes( DEW,factor(year), colour=year)) +
 ### Graf polosum 
 
 ```{r}
-slp <- mandatory_data$DEW
+slp <- all_data$DEW
 slp_asc <- sort(slp, decreasing = FALSE)
 slp_desc <- sort(slp, decreasing = TRUE)
 
@@ -131,11 +165,11 @@ ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) +
 ```
 ### Kruhovy graf
 ```{r}
-n <- nrow(mandatory_data)
+n <- nrow(all_data)
 lo <- (n * (n - 1) / 2)^(-1 / 2)
 
-Vx <- lo * cos(pi * mandatory_data$DEW)
-Vy <- lo * sin(pi * mandatory_data$DEW)
+Vx <- lo * cos(pi * all_data$DEW)
+Vy <- lo * sin(pi * all_data$DEW)
 
 ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
   geom_point() + 
