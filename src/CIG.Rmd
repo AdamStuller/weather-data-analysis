@@ -5,59 +5,99 @@ date: "4/12/2021"
 output: html_document
 ---
 
-# CIG
-SKY-CONDITION-OBSERVATION ceiling height dimension
+# CIG SKY-CONDITION-OBSERVATION ceiling height dimension
+
+Výška polohy oblakov v metroch nad zemou. 
+
+```{r}
+describe(all_data$CIG) 
+```
 
 ### Centralna poloha dat
 
-Hodnota vyberoveho medianu je 1463, modus je 22000 a vyberovy priemer je 5935.329. 
+Hodnota vyberoveho medianu je 1707, modus je 22000 a vyberovy priemer je 7359.877. Tieto tri hodnoty hovoria o tom, ze data urcite nie su vyvazene ani sa nezhromazduju okolo silneho stredu. Vydime, ze najcastejsia hodnota je 22000, čo je ďaleko vyššie ako median. Priemer je zjavne vychýlený smerom doprava. 
+
+Spôsobené je to tým, že hodnoty zaznamenane sa postupne zvysuju podla toho ako su namerane. Od isteho bodu si vsat vsetky hodnoty 22000. To moze znamenat, ze oblaky uz boli vyssie ako ich senzor bol schopny zaznamenat alebo, ze obloha bola uplne jasna. 
 
 ```{r}
-getmode(na.omit(all_data$CIG))
-median(all_data$CIG, na.rm = TRUE)
-mean(all_data$CIG, na.rm = TRUE)
+getmode(na.omit(all_data$CIG)) %>%
+  print(cat("Modus: " ))
+
+median(all_data$CIG, na.rm = TRUE) %>%
+  print(cat("Median: "))
+
+mean(all_data$CIG, na.rm = TRUE) %>%
+  print(cat("Mean: "))
 ``` 
 
 
 ### Variabilita 
 
-Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+Variacne rozpatie je 22 000 teda od 0 ked predpokladame, ze je hmla po jasnu oblohu. 
+
+Medzi kvartilova odchylka je 10625, co znamena, ze 50 percent dat je velmi siroko rozdelenych. 
+
+Vyberovy rozptyl je 87070999, štandardna odchylka 9331.184 a variancny koeficient 1.267845, cize 126.78%,   čo je naozaj veľka variabilita. 
 
 ```{r}
-var(mandatory_data$CIG, na.rm = T) # rozptyl
+max_slp <- max(all_data$CIG, na.rm= TRUE)
+min_slp <- min(all_data$CIG, na.rm= TRUE)
+var_rozpatie <- max_slp - min_slp
+print(cat("Variacne rozpatie", var_rozpatie))
 
-EnvStats::cv(mandatory_data$CIG, na.rm = T) # variacny koeficient
+# Interquartile range
+Q1_slp <- quantile(all_data$CIG, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(all_data$CIG, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(all_data$CIG, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+
+var(all_data$CIG, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
+
+EnvStats::cv(all_data$CIG, na.rm = T) %>% print(cat("Variacny koeficient: "))# variacny koeficient
 ```
-
+```{r}
+summary(all_data$CIG)
+all_data['CIG'] %>% profiling_num()
+```
 
 ### Asymetria
 
+Šikmost (skewness) je 0.8968205. Je teda kladna a hovori, ze data su nachylene dolava. 
+
+Špicatost (kurtosis) - 1.869349 je lladna teda mierne spicatejsia ako normalne rozdelenie. AKo ale ukazuje histogram, CIG ma velmi daleko od normalneho rozdelenia a tieto veliciny nam vela nepovedia.
+
 ### Histogram 
+
+Vidime, ze distribucia dat je velmi zaujimava. 
 ```{r}
-ggplot(mandatory_data, aes(x=CIG)) + 
+ggplot(all_data, aes(x=CIG)) + 
   geom_histogram(bins = 10, binwidth = 500,fill="2", color="#e9ecef") +
   labs(title = paste("ceiling height histogram")) +
   xlab("CIG - ceiling height") +
   ylab("Frequency") 
 ```
+Pri pohlade na  hodnoty nizsie ako maximalna hodnota 22000, vidime este lepsie, ze sa to nepotoba na normalne ani na ine slusne rozdelnie. 
 
 ### Boxplot 
 
+Pro pohlade na boxplot vidime, ze data su vysoko nevyvazene a median je daleko od stredu grafu. 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::select('CIG') %>%
   tidyr::gather(key='label', value = 'ceiling')
 
 ggplot(data = df, aes( ceiling,factor(label), colour=label)) +
-  geom_boxplot() 
-```
-Cudne maximum 
-```{r}
-na.omit(mandatory_data$CIG) %>% max
+  geom_boxplot() +
+  labs(title = paste("Boxplot Vysky oblaklov")) +
+  xlab("") +
+  ylab("") 
 ```
 
+
+ Na boxplote pre jednotlive roky vidime, ze po roku 2012 prislo k zaujimavej zmene merania. 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -68,11 +108,13 @@ df <- mandatory_data %>%
 ggplot(data = df, aes( CIG,factor(year), colour=year)) +
   geom_boxplot() 
 ```
-Opat je 2017 rok zaujimavy
 
 ### Violin 
+
+Violin plot ukazuje ze okrem hodnoty 22000 sa merania zvyknu zhromazdovat este niekde pod 1000 a nad 5000.
+
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('CIG') %>%
   tidyr::gather(key='label', value = 'ceiling')
 
@@ -84,16 +126,19 @@ ggplot(data = df, aes(factor(label), ceiling, fill=label)) +
 
 ### Q-Q plot 
 
+qq plot iba ukazuje, ze o normalnom rozdelni nemoze byt ani rec.
+
 ```{r}
-ggplot(data = mandatory_data, aes(sample=CIG)) +
+ggplot(data = all_data, aes(sample=CIG)) +
   stat_qq() + 
   stat_qq_line()
 ```
 
 
-Diagram Rozptylenia
+###  Diagram Rozptylenia
+Ukazuje sa nam  aj druhe caste meranie pod 10000, ktore sme uz vyssie spomenuli. Nevieme coho je to nasledkom. 
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('CIG') %>%
   tidyr::gather(key='label', value = 'ceiling')
 
@@ -101,11 +146,11 @@ ggplot(data = df, aes( ceiling,factor(label), colour=label)) +
   geom_jitter() 
 ```
 
-
+Vidime vsak na diagrame rozptylenia pre jednotlive roky, ze sa to dialo pred uz spominanym rokom 2013.
 
 ```{r}
 
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -121,7 +166,7 @@ ggplot(data = df, aes( CIG,factor(year), colour=year)) +
 ### Graf polosum 
 
 ```{r}
-cig <- mandatory_data$CIG
+cig <- all_data$CIG
 cig_asc <- sort(cig, decreasing = FALSE)
 cig_desc <- sort(cig, decreasing = TRUE)
 
@@ -135,11 +180,11 @@ ggplot(data.frame(cig_asc), aes(x = cig_asc, y = 0.5*(cig_asc+cig_desc))) +
 
 ### Kruhovy graf
 ```{r}
-n <- nrow(mandatory_data)
+n <- nrow(all_data)
 lo <- (n * (n - 1) / 2)^(-1 / 2)
 
-Vx <- lo * cos(pi * mandatory_data$CIG)
-Vy <- lo * sin(pi * mandatory_data$CIG)
+Vx <- lo * cos(pi * all_data$CIG)
+Vy <- lo * sin(pi * all_data$CIG)
 
 ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
   geom_point() + 

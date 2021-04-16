@@ -11,6 +11,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # SLP -  Atmosfericky tlak v hektopascaloch
 
+```{r}
+describe(all_data$SLP) 
+```
+
+
 ### Centralna poloha dat
 
 Hodnota vyberoveho medianu je 1016.9 hP, modus je 1017 a vyberovy priemer je 1017.295. Priemer je teda dobry ukazatel a data zjavne nie su ovplivnene velkym mnozstvom outlierov ale ukazatele centralnej polohy su velmi silne.
@@ -50,8 +55,6 @@ Q3_slp <- quantile(mandatory_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich 
 
 (IQR(mandatory_data$SLP, na.rm = T ) / 2) %>%# interquartile range
   print(cat("Medzikvantilova odchýlka: "))
-
-
 ```
 
 ```{r}
@@ -96,7 +99,7 @@ df <- all_data %>%
 
 ggplot(data = df, aes( SLP,factor(year), colour=year)) +
   geom_boxplot() +
-  labs(title = paste("Atmospheric pressure boxplot, individual years")) +
+  labs(title = paste("Boxplot atmosferickeho tlaku, jednotlive roky")) +
   xlab("SLP - Atmospheric pressure") +
   ylab("Year") 
 ```
@@ -108,7 +111,7 @@ df <- all_data %>%
 
 ggplot(data = df, aes( pressure,factor(label), colour=label)) +
   geom_boxplot() +
-  labs(title = paste("Atmospheric pressure boxplot")) +
+  labs(title = paste("Boxplot atmosferickeho tlaku")) +
   xlab("") +
   ylab("") 
 ```
