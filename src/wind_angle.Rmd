@@ -1,0 +1,180 @@
+---
+title: "Wind angle"
+output: html_document
+---
+
+```{r, include=FALSE}
+source('setup.R')
+```
+
+Atribút wind angle reprezentuje uhol meraný v smere hodinových ručičiek medzi severom a smerom, z ktorého fúka vietor. Uhol je meraný v stupňoch teda ide o diskrétny atribút, ktorý nadobúda hodnoty od 0 do 360°, meraný v desiatkach stupňov.
+
+```{r wnd_angle, warning = FALSE}
+load('.Rdata')
+
+summary(mandatory_data$WND_ANGLE)
+mandatory_data['WND_ANGLE'] %>% profiling_num()
+
+freq_table <- table(mandatory_data$WND_ANGLE)
+angle_frequency <- as.data.frame(freq_table) %>% rename('Angle' = Var1)
+angle_frequency[order(angle_frequency$Freq, decreasing = T),]
+
+getmode(na.omit(mandatory_data$WND_ANGLE)) # modus
+
+var(mandatory_data$WND_ANGLE, na.rm = T) # rozptyl
+max(mandatory_data$WND_ANGLE, na.rm = T) - min(mandatory_data$WND_ANGLE, na.rm = T) # variacne rozpatie
+
+# Interquartile range and outliers
+Q1 <- quantile(mandatory_data$WND_ANGLE, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(mandatory_data$WND_ANGLE, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+IQR <- IQR(mandatory_data$WND_ANGLE, na.rm = T) # interquartile range
+IQR_dev <- IQR/2
+
+# odlahle hodnoty
+length(which(mandatory_data$WND_ANGLE < (Q1 - 1.5*IQR)))
+length(which(mandatory_data$WND_ANGLE > (Q3 + 1.5*IQR)))
+
+```
+
+Hodnota výberového mediánu je 200 a hodnota výberového priemeru 184.2. Keďže stredná hodnota (medián) je vyššia ako priemer, hodnotu priemeru mohli ovplyvniť nejaké výrazne nižšie hodnoty. Teda stredná hodnota uhlu vetra je 200° a polovica hodnôt dosahuje hodnoty vyššie od mediánu a polovica hodnôt nižšie. 
+
+Modus, teda najčastejšia hodnota je 10. O niečo menej početné sú hodnoty 20, 360, 30 a 350, teda najčastejšie fúkal severný vietor. Naopak najmenej početné sú hodnoty 160, 170 a 150° teda južný vietor sa vyskytoval najmenej.
+ 
+Výberový rozptyl je 14031.98, čo vzhľadom k tomu, že samotné hodnoty uhlu vetra sa pohybujú od 0 až do 360 nie je veľa.
+
+Výberová smerodajná odchýlka je 118.4567. Teda hodnoty sú rozptýlené približne 118 stupňov okolo priemeru.
+
+Medzikvartilová odchýlka (IQR/2) je 115, teda hodnoty sú rozptýlené približne 115 stupňov okolo mediánu.
+
+Variačné rozpätie je 350. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou uhlu vetra. Maximálny uhol je 360° a minimálny 10°. 
+
+Variačný koeficient uhlu vetra je 0.64, čo je 64%. V porovnaní s teplotou je približne o 30% menší. Teda uhol vetra má nižšiu variabilitu ako teplota. 
+
+
+**Boxplot**
+
+Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Krabica zobrazuje rozsah v ktorom sa nachádza 50% hodnôt - medzikvartilové rozpätie, čo je hodnota 3.kvartilu - hodnota 1. kvartilu. Hodnota 3.kvartilu je 290 a hodnota 1. kvartilu 60, teda medzikvartilové rozpätie (IQR) je 290 - 60 = 230. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou (200). Kedže sa nachádza nad polovicou krabice, podľa boxplotu sa zdá, že dáta sú zošikmené a teda nie sú rovnomerne rozptýlené okolo strednej hodnoty.
+
+Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
+Maximálna hodnota (360°) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
+Minimálna hodnota (10°) je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie).
+V obidvoch prípadoch by vypočítané hodnoty boli vyššie, resp. nižšie ako rozsah stupňov (0-360) preto sú vonkajšie hradby boxplotu dané celkovou minimálnou a maximálnou hodnotou.
+
+Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Takéto hodnoty sa však v uhle vetra nevyskytujú, preto ďalej neoverujeme výskyt extrémnych hodnôt.
+
+
+Hodnota šikmosti je záporná ale blízka 0 (-0.08690638) teda hodnoty nie sú veľmo zošikmené a ide skôr o symetrické rozdelenie. 
+
+Hodnota špicatosti je 1.632475, je menšia ako 3 teda hodnoty majú ploché rozdelenie. To znamená, že v súbore sa nachádza viac hodnôt vzdialenejších od strednej hodnoty.
+
+
+```{r boxplot, warning = FALSE}
+
+# boxplot
+boxplot(mandatory_data$WND_ANGLE, col = "#4dc1db", ylab = "WND_ANGLE", main = "Wind angle boxplot")
+
+```
+
+**Histogram**
+
+Už z histogramu vidíme, že rozdelenie hodnôt pravdepodobne nebude normálne. Avšak problémovými bodmi môžu byť hraničné hodnoty 0 a 360 prípadne hodnoty blízke hraničným bodom, pretože uhol 360° je v podstate rovnaký ako uhol 0° a v smere vetra sa tento rozdiel neprejaví podobne ako aj hodnoty 0° a 10° alebo 360° a 350°.
+
+```{r histogram, warning = FALSE}
+
+# histogram
+ggplot(mandatory_data, aes(x = WND_ANGLE)) + 
+  geom_histogram(bins = 15, fill = "#4dc1db", color = "#e9ecef") +
+  labs(title = paste("Wind angle histogram")) +
+  xlab("WND_ANGLE") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(0, 360, by = 20)) +
+  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
+
+
+ggplot(mandatory_data, aes(x = WND_ANGLE)) + 
+  geom_histogram(binwidth = 60, fill = "#4dc1db", color = "#e9ecef") +
+  labs(title = paste("Wind angle histogram")) +
+  xlab("WND_ANGLE") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(0, 360, by = 20)) +
+  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
+
+```
+
+
+**Graf hustoty**
+
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt uhlu vetra (červená čiara). Čiary nie sú rovnaké, teda nejde o normálne rozdelenie. Modrá prerušovaná čiara predstavuje priemer hodnôt uhlu vetra. V dátach sa nachádza niekoľko vrcholov pričom krajné hodnoty okolo 0 a 360 stupňov je možné spojiť, nakoľko uhol je cyklická  veličina.
+
+```{r density plot, warning = FALSE}
+
+# denisty plot 
+# data z normalneho rozdelenia
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$WND_ANGLE)), mean(mandatory_data$WND_ANGLE, na.rm = T), sd(mandatory_data$WND_ANGLE, na.rm = T))))
+
+# porovnanie hodnot normalneho rozdelenia a wnd_angle
+ggplot(mandatory_data, aes(x = WND_ANGLE), color = 3) + 
+  geom_density(color = 2, size = 0.8) +
+  geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
+  geom_vline(aes(xintercept = mean(WND_ANGLE, na.rm = T)),
+            color = 4, linetype = "dashed", size=1) +
+  scale_x_continuous(breaks = seq(-300, 800, by = 50)) +
+  labs(title = paste("Odhad hustoty uhlu vetra")) +
+  xlab("WND_ANGLE") +
+  ylab("Hustota pravdepodobnosti")
+
+```
+
+**Husľový graf**
+
+Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že nejde o normálne rozdelenie. 
+
+```{r violin, warning = FALSE}
+
+# violin plot
+df <- mandatory_data %>%
+  dplyr::select('WND_ANGLE') %>%
+  tidyr::gather(key = 'label', value = 'angle')
+
+ggplot(data = df, aes(factor(label), angle, fill = angle)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75), fill = "#4dc1db") +
+  labs(title = paste("Husľový graf uhlu vetra"), y = "Wind angle", fill = "angle") +
+  theme(axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  scale_y_continuous(breaks = seq(0, 400, by = 20)) 
+
+```
+
+**Q-Q graf**
+
+Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je v našom prípade rozdelenie nameraných hodnôt uhlu vetra. Keďže body sa výrazne odchyľujú od priamky normálneho rozdelenia, môžeme povedať, že rozdelenie hodnôt uhlu vetra nie je normálne.
+
+```{r qq, warning = FALSE}
+
+# QQ plot
+ggplot(data = mandatory_data, aes(sample = WND_ANGLE)) +
+  stat_qq() + 
+  stat_qq_line() +
+  labs(title = paste("Q-Q graf uhlu vetra"))
+
+```
+
+**Graf polosum**
+
+Z grafu vidno, že hodnoty nie sú symetrické.
+
+```{r polosum, warning = FALSE}
+
+# polosum
+angle <- mandatory_data$WND_ANGLE
+angle_asc <- sort(angle, decreasing = FALSE)
+angle_desc <- sort(angle, decreasing = TRUE)
+
+ggplot(data.frame(angle_asc), aes(x = angle_asc, y = 0.5*(angle_asc + angle_desc))) + 
+  geom_point(size = 2, color = "#013c7f") +
+  scale_x_continuous(breaks = seq(0, 400, by = 20)) +
+  labs(title = "Graf polosum pre uhol vetra", x = "Uhol vetra") +
+  theme_bw()
+
+```
+

@@ -22,10 +22,10 @@ library(corrplot)
 
 ```{r NA, echo=FALSE}
 
-NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999')
+NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999', '009999')
 
 process_col <- function(val, scaling = 1) {
-  if (is.na(val) || val %in% NA_values){
+  if (is.na(as.numeric(val)) || as.numeric(val) %in% NA_values){
     val <- NA
   }
   return (as.numeric(val)/scaling)
@@ -42,7 +42,7 @@ selected_cols <- c('STATION', 'DATE', 'TMP', 'WND_ANGLE', 'WND_SPEED', 'VIS', 'S
 allfiles <- list.files(path = "../data", pattern = "*.csv", full.names = T)
 data_sliac <- data.table::rbindlist(lapply(allfiles, function(x) cbind(fread(x, fill = T), gsub(".csv", "", x))), fill = T)
 data_sliac <- as.data.frame(data_sliac)
-
+View(data_sliac)
 ```
 
 ```{r}
@@ -73,6 +73,8 @@ mandatory_data <- data_sliac %>%
   dplyr::select(all_of(selected_cols))
 
 # View(mandatory_data)
+mandatory_data %>% filter(VIS == 9999)
+getmode(na.omit(mandatory_data$VIS))
 ```
 
 
@@ -356,7 +358,7 @@ Medzikvartilová odchýlka (IQR/2) je 7.05, čo je v porovnaní so smerodajnou o
 
 Variačné rozpätie je 62.3. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou teploty. Jeho veľkosť závisí iba od krajných hodnôt, pričom v tomto prípade spodná hranica patrí medzi odľahlé hodnoty. Preto variačné rozpätie mimo odľahlých hodnôt bude o niečo menšie.
 
-Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 0.99, čo je 99%, čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
+Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 0.97, čo je 97%, čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
 
 
 
@@ -388,6 +390,7 @@ summary(mandatory_data$TMP)
 mandatory_data['TMP'] %>% profiling_num()
 
 var(mandatory_data$TMP, na.rm = T) # rozptyl
+max(mandatory_data$TMP, na.rm = T) - min(mandatory_data$TMP, na.rm = T)
 
 EnvStats::cv(mandatory_data$TMP, na.rm = T) # variacny koeficient
 
@@ -423,7 +426,7 @@ boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
 
 # denisty plot 
 # data z normalneho rozdelenia
-data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$TM)), mean(mandatory_data$TMP, na.rm = T), sd(mandatory_data$TMP, na.rm = T))))
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$TMP)), mean(mandatory_data$TMP, na.rm = T), sd(mandatory_data$TMP, na.rm = T))))
 
 # porovnanie hodnot normalneho rozdelenia a hodnot teploty
 ggplot(mandatory_data, aes(x=TMP),color = 3) + 
@@ -432,7 +435,7 @@ ggplot(mandatory_data, aes(x=TMP),color = 3) +
   geom_vline(aes(xintercept=mean(TMP, na.rm = T)),
             color = 4, linetype="dashed", size=1) +
   scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
-  labs(title = paste("Odhad hustoty teploty"), fill = "Years", color = "tmp") +
+  labs(title = paste("Odhad hustoty teploty")) +
   xlab("TMP") +
   ylab("Hustota pravdepodobnosti")
 
@@ -448,6 +451,7 @@ ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) +
   scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
   labs(title = "Graf polosum pre teplotu", x = "Teplota") +
   theme_bw()
+
 
 
 ```
