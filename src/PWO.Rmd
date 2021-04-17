@@ -1,0 +1,70 @@
+---
+title: "DEW"
+author: "Adam Stuller"
+date: "4/12/2021"
+output: html_document
+---
+
+# PWO - Past weather observation
+
+Jedna sa o kategorickú zakódovanú informáciu o pozorovanom pocasí. Z dookumentacie su hodnoty nasledovne: 
+
+Domain Value ID: Domain Value Definition Text 
+0 = Cloud covering 1/2 or less of the sky throughout the appropriate period 
+1 = Cloud covering more than ½ of the sky duringpart of the appropriate period and covering ½ or less during part of the period 
+2 = Cloud covering more than 1/2 of the sky throughout the appropriate period 
+3 = Sandstorm, duststorm or blowing snow 
+4 = Fog or ice fog or thick haze 
+5 = Drizzle
+6 = Rain
+7 = Snow, or rain and snow mixed 
+8 = Shower(s) 
+9 = Thunderstorm(s) with or without precipitation
+
+### Centralna poloha dat
+
+Vidno, že najčastejšiou formou počasia na slovensku je typ 2, teda zamračené s viac ako polovicou oblohy zakrytou oblakmi.
+
+Relativne pocetnost jednotlivych tried: 
+
+           0 - 0.1720426528 %       
+           1 - 0.1068872541 %
+           2 - 0.2627742086 %     
+           3 - 0.0002995906 %
+           4 - 0.1205130766 %        
+           5 - 0.0141029482 %       
+           6 - 0.1845144969 %       
+           7 - 0.0661762258 %
+           8 - 0.0390577322 %   
+           9 - 0.0336318143 %
+  
+
+```{r}
+unique(all_data$PWO)
+
+counts <- table(all_data$PWO)
+counts / sum(counts)
+
+getmode(na.omit(all_data$PWO)) %>%
+  print(cat("Modus: " ))
+
+``` 
+
+
+### Batplot 
+
+```{r}
+df <- all_data %>%
+  dplyr::mutate(
+    PWO = map_chr(.$PWO, as.character)
+  ) %>% 
+  dplyr::filter(!is.na(PWO))
+
+ggplot(df, aes(x = PWO)) + 
+  geom_bar(fill = "orange", width = 0.7) +
+  xlab("Typ pocasia") + 
+  ylab("Pocet zaznamenani")
+```
+
+
+Jedna sa o kategoricu velicinu, s velkym mnozstvom NA hdnot. Na sa tam objavuju iba preto, ze sa tato velicina merala v konkretnych intervaloch a medzi nimi nie. 

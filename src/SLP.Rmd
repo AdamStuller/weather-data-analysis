@@ -1,0 +1,196 @@
+---
+title: "SLP"
+author: "Adam Stuller"
+date: "4/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# SLP -  Atmosfericky tlak v hektopascaloch
+
+```{r}
+describe(all_data$SLP) 
+```
+
+
+### Centralna poloha dat
+
+Hodnota vyberoveho medianu je 1016.9 hP, modus je 1017 a vyberovy priemer je 1017.295. Priemer je teda dobry ukazatel a data zjavne nie su ovplivnene velkym mnozstvom outlierov ale ukazatele centralnej polohy su velmi silne.
+
+```{r}
+getmode(na.omit(all_data$SLP)) %>%
+  print(cat("Modus: " ))
+
+median(all_data$SLP, na.rm = TRUE) %>%
+  print(cat("Median: "))
+
+mean(all_data$SLP, na.rm = TRUE)%>%
+  print(cat("Mean: "))
+```
+
+### Variabilita
+
+Vyberovy rozptyl je 67.58904 a smerodajna odchylka 8.221255 . Variancny koeficient je 0.008081483 alebo v percentach 0,8%. Vsetko to hovori o tom, ze data pri tlaku su relativne nakope a s malou variabilitou.
+
+Variacne rozpatie je 78.8 teda rozdiel medzi najmensim a najvacsim prvkom nie je velmi velky. Vychadza to pravdaze z podstatty atmosferickeho tlaku a jednotiek v ktorych bol namerany.
+
+Medzikvantilova odchýlka je **4.95.** Je to o dost mensie cislo a hovori nam to o tom, ze velka vacsina dat sa nachadza nakope okolo stednej hodnoty.
+
+Hodnota prvého a tretieho kvartilu je 1012, resp. 1022. Polovica dát sa teda nachadza v rospetí iba 10.
+
+```{r}
+max_slp <- max(all_data$SLP, na.rm= TRUE)
+min_slp <- min(all_data$SLP, na.rm= TRUE)
+var_rozpatie <- max_slp - min_slp
+print(cat("Variacne rozpatie", var_rozpatie))
+```
+
+```{r}
+# Interquartile range
+Q1_slp <- quantile(all_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(all_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(all_data$SLP, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+```
+
+```{r}
+var(all_data$SLP, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
+
+EnvStats::cv(all_data$SLP, na.rm = T)%>% print(cat("Variacny koeficient: ")) # variacny koeficient
+```
+
+```{r}
+summary(all_data$SLP)
+all_data['SLP'] %>% profiling_num()
+```
+
+### Asymetria
+
+Šikmost (skewness) je 0.1264733. Je mierne kladna, teda rozdelenie je mierne zasikmene do lava.
+
+Špicatost (kurtosis) - 3.539679 je lladna teda mierne spicatejsia pre tlak ako pre data z normálneho rozdelenia.
+
+### Histogram
+
+```{r}
+ggplot(all_data, aes(x=SLP)) + 
+  geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
+  labs(title = paste("Atmospheric pressure histogram")) +
+  xlab("SLP - Atmospheric pressure") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
+  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
+```
+
+### Boxplot
+
+```{r}
+df <- all_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'SLP')))
+
+ggplot(data = df, aes( SLP,factor(year), colour=year)) +
+  geom_boxplot() +
+  labs(title = paste("Boxplot atmosferickeho tlaku, jednotlive roky")) +
+  xlab("SLP - Atmospheric pressure") +
+  ylab("Year") 
+```
+
+```{r}
+df <- all_data %>% 
+  dplyr::select('SLP') %>%
+  tidyr::gather(key='label', value = 'pressure')
+
+ggplot(data = df, aes( pressure,factor(label), colour=label)) +
+  geom_boxplot() +
+  labs(title = paste("Boxplot atmosferickeho tlaku")) +
+  xlab("") +
+  ylab("") 
+```
+
+### Violin
+
+```{r}
+df <- all_data %>%
+  dplyr::select('SLP') %>%
+  tidyr::gather(key='label', value = 'pressure')
+
+ggplot(data = df, aes(factor(label), pressure, fill=label)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))+
+  labs(title = paste("Atmospheric pressure violin plot")) +
+  xlab("") +
+  ylab("SLP - Atmospheric pressure") 
+```
+
+### Q-Q plot
+
+```{r}
+ggplot(data = mandatory_data, aes(sample=SLP)) +
+  stat_qq() + 
+  stat_qq_line()
+```
+
+### Diagram Rozptylenia
+
+```{r}
+df <- all_data %>%
+  dplyr::select('SLP') %>%
+  tidyr::gather(key='label', value = 'pressure')
+
+ggplot(data = df, aes( pressure,factor(label), colour=label)) +
+  geom_jitter() +
+  labs(title = paste("Diagram rozptylenia pre atmosfericky tlak")) +
+  xlab("SLP - Atmosfericky  tlak") +
+  ylab("") 
+
+```
+
+```{r}
+
+df <- all_data %>% 
+  dplyr::mutate(
+    year = ymd_hms(DATE) %>% 
+      lubridate::year() %>% 
+      map_chr(~ as.character(.x))
+  ) %>%
+  dplyr::select(all_of(c('year', 'SLP')))
+
+ggplot(data = df, aes( SLP,factor(year), colour=year)) +
+  geom_jitter() 
+```
+
+### Graf polosum
+
+```{r}
+slp <- all_data$SLP
+slp_asc <- sort(slp, decreasing = FALSE)
+slp_desc <- sort(slp, decreasing = TRUE)
+
+ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) + 
+  geom_point(size = 2, color = 2) +
+  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
+  labs(title = "Graf polosum pre atmosfericky tlak", x = "Tlak") +
+  theme_bw()
+```
+
+### Kruhovy graf
+
+```{r}
+n <- nrow(all_data)
+lo <- (n * (n - 1) / 2)^(-1 / 2)
+
+Vx <- lo * cos(pi * all_data$SLP)
+Vy <- lo * sin(pi * all_data$SLP)
+
+ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
+  geom_point() + 
+  coord_fixed()
+```
