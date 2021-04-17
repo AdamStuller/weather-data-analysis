@@ -50,10 +50,10 @@ print(cat("Variacne rozpatie", var_rozpatie))
 
 ```{r}
 # Interquartile range
-Q1_slp <- quantile(mandatory_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
-Q3_slp <- quantile(mandatory_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+Q1_slp <- quantile(all_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(all_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
 
-(IQR(mandatory_data$SLP, na.rm = T ) / 2) %>%# interquartile range
+(IQR(all_data$SLP, na.rm = T ) / 2) %>%# interquartile range
   print(cat("Medzikvantilova odchýlka: "))
 ```
 

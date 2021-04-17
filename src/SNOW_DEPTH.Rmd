@@ -9,31 +9,64 @@ output: html_document
 
 ### Centralna poloha dat
 
-Hodnota vyberoveho medianu je 1016,6 hP, modus je 1015,4 a vyberovy priemer je 1017.057, co nam hovori o tom, ze priemer je relativne dobry ukazovatelom v tychto datach a nie je vychyleny outliermi. 
+Hodnota vyberoveho medianu je 1, modus je 0 a vyberovy priemer je 6.60858. Data teda nie su nahromadene centralne a ako neskor uvidime ani z nromalneho rozdelenia, co pri vyske snehu dava zmysel.
 
 ```{r}
-getmode(na.omit(mandatory_data$SNOW_DEPTH))
-median(mandatory_data$SNOW_DEPTH, na.rm = TRUE)
-mean(mandatory_data$SNOW_DEPTH, na.rm = TRUE)
+getmode(na.omit(all_data$SNOW_DEPTH)) %>%
+  print(cat("Modus: " ))
+
+median(all_data$SNOW_DEPTH, na.rm = TRUE) %>%
+  print(cat("Median: "))
+
+mean(all_data$SNOW_DEPTH, na.rm = TRUE)%>%
+  print(cat("Mean: "))
 ``` 
 
 
 ### Variabilita 
 
-Vyberovy rozptyl je 63.28557 a variancny koeficient 0.007821809
+Vyberovy rozptyl je 102.5846 a variancny koeficient 1.532614, co hovori o relativne velkej variabilite dat. 
+
+Variacne rozpatie je 207, čo je ale sposobene vychýlenoou  hodnootou z roku 1994, kedy z ničoho nič namerali 207 cm snehu, pričom chvílu pred tym bol iba 1cm a potom tiež. Predpokladáme, že je to chyba. Nahradzovať to ale veľmi nebudeme, keďže s týmito dátami, nebudeme veľa pracovať.
+
+Medzi kvantilova odchylka je iba 5. To znamena, že gro dát sa nachádza na malom intervale. 
 
 ```{r}
-var(mandatory_data$SNOW_DEPTH, na.rm = T) # rozptyl
+var(all_data$SNOW_DEPTH, na.rm = TRUE) # rozptyl
 
-EnvStats::cv(mandatory_data$SNOW_DEPTH, na.rm = T) # variacny koeficient
+EnvStats::cv(all_data$SNOW_DEPTH, na.rm = T) # variacny koeficient
+
+max_snow <- max(all_data$SNOW_DEPTH, na.rm= TRUE)
+min_snow <- min(all_data$SNOW_DEPTH, na.rm= TRUE)
+var_rozpatie <- max_snow - min_snow
+print(cat("Variacne rozpatie", var_rozpatie))
+
+
+# Interquartile range
+Q1_slp <- quantile(all_data$SNOW_DEPTH, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(all_data$SNOW_DEPTH, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(all_data$SNOW_DEPTH, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+
+summary(all_data$SNOW_DEPTH)
+all_data['SNOW_DEPTH'] %>% profiling_num()
 ```
 
 
 ### Asymetria
+Šikmost (skewness) je 3.188859. Je vyrazne kladna, teda rozdelenie je zasikmene do lava.
+
+Špicatost (kurtosis) - 36.71543 je kladna a vysoka teda spicatejsia ako data z normálneho rozdelenia. 
 
 ### Histogram 
+
+Ako vidime rozdelenie snehu vzdialene pripomina exponencialne rozdelnenie
 ```{r}
-ggplot(mandatory_data, aes(x=SNOW_DEPTH)) + 
+df <- all_data %>%
+  dplyr::filter(SNOW_DEPTH < 100)
+
+ggplot(df, aes(x=SNOW_DEPTH)) + 
   geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
   labs(title = paste("SNOW_DEPTH histogram")) +
   xlab("SNOW_DEPTH") +
@@ -45,8 +78,10 @@ ggplot(mandatory_data, aes(x=SNOW_DEPTH)) +
 
 
 ### Boxplot 
+
+Na boxplote vydime aj vychylene hodnoty. 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -60,7 +95,7 @@ ggplot(data = df, aes( SNOW_DEPTH,factor(year), colour=year)) +
 
 
 ```{r}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::select('SNOW_DEPTH') %>%
   tidyr::gather(key='label', value = 'snow')
 
@@ -71,7 +106,7 @@ ggplot(data = df, aes( snow,factor(label), colour=label)) +
 
 ### Violin 
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('SNOW_DEPTH') %>%
   tidyr::gather(key='label', value = 'snow')
 
@@ -82,14 +117,14 @@ ggplot(data = df, aes(factor(label), snow, fill=label)) +
 ### Q-Q plot 
 
 ```{r}
-ggplot(data = mandatory_data, aes(sample=SNOW_DEPTH)) +
+ggplot(data = all_data, aes(sample=SNOW_DEPTH)) +
   stat_qq() + 
   stat_qq_line()
 ```
 
 Diagram Rozptylenia
 ```{r}
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('SNOW_DEPTH') %>%
   tidyr::gather(key='label', value = 'snow')
 
@@ -100,7 +135,7 @@ ggplot(data = df, aes( snow,factor(label), colour=label)) +
 
 ```{r}
 
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -112,33 +147,5 @@ ggplot(data = df, aes( SNOW_DEPTH,factor(year), colour=year)) +
   geom_jitter() 
 ``` 
 
-
-
-### Graf polosum 
-
-```{r}
-slp <- mandatory_data$SNOW_DEPTH
-slp_asc <- sort(slp, decreasing = FALSE)
-slp_desc <- sort(slp, decreasing = TRUE)
-
-ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) + 
-  geom_point(size = 2, color = 2) +
-  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
-  labs(title = "Graf polosum pre snah", x = "Snah") +
-  theme_bw()
-```
-
-### Kruhovy graf
-```{r}
-n <- nrow(mandatory_data)
-lo <- (n * (n - 1) / 2)^(-1 / 2)
-
-Vx <- lo * cos(pi * mandatory_data$SNOW_DEPTH)
-Vy <- lo * sin(pi * mandatory_data$SNOW_DEPTH)
-
-ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
-  geom_point() + 
-  coord_fixed()
-```
 
 

@@ -65,7 +65,7 @@ all_data['CIG'] %>% profiling_num()
 
 Šikmost (skewness) je 0.8968205. Je teda kladna a hovori, ze data su nachylene dolava. 
 
-Špicatost (kurtosis) - 1.869349 je lladna teda mierne spicatejsia ako normalne rozdelenie. AKo ale ukazuje histogram, CIG ma velmi daleko od normalneho rozdelenia a tieto veliciny nam vela nepovedia.
+Špicatost (kurtosis) - 1.869349. AKo ale ukazuje histogram, CIG ma velmi daleko od normalneho rozdelenia a tieto veliciny nam vela nepovedia.
 
 ### Histogram 
 
