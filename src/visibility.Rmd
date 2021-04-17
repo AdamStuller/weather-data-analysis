@@ -1,0 +1,175 @@
+---
+title: "Visibility"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, include=FALSE}
+source('setup.R')
+```
+
+Atribút visibility reprezentuje viditeľnosť - horizontálnu vzdialenosť, po ktorú je objekt viditeľný meranú v metroch.
+
+```{r VIS, warning = FALSE}
+load('.Rdata')
+
+summary(mandatory_data$VIS)
+mandatory_data['VIS'] %>% profiling_num()
+
+getmode(na.omit(mandatory_data$VIS)) # modus
+
+var(mandatory_data$VIS, na.rm = T) # rozptyl
+max(mandatory_data$VIS, na.rm = T) - min(mandatory_data$VIS, na.rm = T) # variacne rozpatie
+
+# Interquartile range and outliers
+Q1 <- quantile(mandatory_data$VIS, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(mandatory_data$VIS, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+IQR <- IQR(mandatory_data$VIS, na.rm = T) # interquartile range
+IQR_dev <- IQR/2
+
+# odlahle hodnoty
+length(which(mandatory_data$VIS < (Q1 - 1.5*IQR)))
+length(which(mandatory_data$VIS > (Q3 + 1.5*IQR)))
+
+# extremne hodnoty
+length(which(mandatory_data$VIS < (Q1 - 3*IQR)))
+length(which(mandatory_data$VIS > (Q3 + 3*IQR)))
+
+```
+
+Hodnota výberového mediánu je 11265 a hodnota výberového priemeru 14800. Keďže stredná hodnota (medián) je nižšia ako priemer, hodnotu priemeru mohli ovplyvniť vyššie hodnoty.
+
+Modus - najčastejšia hodnota viditeľnosti je rovnaká ako medián - 11265.
+ 
+Výberový rozptyl je 142514577.
+
+Výberová smerodajná odchýlka je 11937.95. To znamená, že viditeľnosť sa pohybuje približne v rozsahu 11937.95 okolo priemeru. 
+
+Medzikvartilová odchýlka (IQR/2) je 7000, teda hodnoty sú rozptýlené približne 7000 okolo mediánu.
+
+Variačné rozpätie je 75000. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou viditeľnosti. Maximálna viditeľnosť je 75000 a minimálna 0. 
+
+Variačný koeficient rýchlosti vetra je 0.81, čo je 81%.
+
+
+**Boxplot**
+
+Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Hodnota 3.kvartilu je 20000 a hodnota 1. kvartilu 6000, teda medzikvartilové rozpätie (IQR) je 14000. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou (11265). Kedže sa nachádza mierne pod polovicou krabice, podľa boxplotu sa zdá, že dáta sú mierne zošikmené. Tiež vidíme, že krabica boxplotu sa nachádza v nižších hodnotách, teda 50% hodnôt tvoria nízke hodnoty, avšak je tu aj niekoľko vysokých hodnôt.
+
+Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
+Maximálna hodnota (41000) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
+Minimálna hodnota je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie), v tomto prípade je to 0.
+
+Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt nad maximálnou hodnotou je 3021, pod minimálnou sa nenachádzajú žiadne odľahlé hodnoty. 
+
+Nakoniec pre odľahlé hodnoty overíme či patria medzi extrémne.
+Horná hranica extrémych hodnôt je vypočítaná ako 3.kvartil + 3 * IQR.
+Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
+V dátach sa nachádza 24 extrémne vysokých hodnôt, ktoré sú vyššie ako hodnota 3.kvartilu + 3 * IQR, teda vyššie ako 62000.
+
+
+Hodnota šikmosti je kladná 1.035, to znamená, že viac hodnôt sa nachádza pod priemerom. Dáta sú zošimené a nejde o symetrické rozdelenie okolo strednej hodnoty. 
+
+Hodnota špicatosti je 3.444, je o niečo väčšia ako 3 teda hodnoty majú špicatejšie rozdelenie. To znamená, že v súbore sa nachádza viac hodnôt bližšie k strednej hodnote.
+
+```{r boxplot, warning = FALSE}
+
+# boxplot
+boxplot(mandatory_data$VIS, col = "#8ad166", ylab = "VIS", main = "Visibility boxplot")
+
+```
+
+**Histogram**
+
+Aj z histogramu vidíme, že rozdelenie hodnôt je mierne vyšikmené doľava. Najpočetnejšie sú hodnoty viditeľnosti okolo 10000 metrov.
+
+```{r histogram, warning = FALSE}
+
+# histogram
+ggplot(mandatory_data, aes(x = VIS)) + 
+  geom_histogram(bins = 15, fill = "#8ad166", color = "#e9ecef") +
+  labs(title = paste("Visibility histogram")) +
+  xlab("VIS") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(0, 80000, by = 10000)) +
+  scale_y_continuous(breaks = seq(0, 50000, by = 5000))
+
+```
+
+**Graf hustoty**
+
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt viditeľnosti (červená čiara). Čiary nie sú rovnaké, teda nejde o normálne rozdelenie. Modrá prerušovaná čiara predstavuje priemernú hodnotu viditeľosti. V dátach sa nachádza niekoľko vrcholov, najvyšší je okolo hodnoty 10000. 
+
+```{r density plot, warning = FALSE}
+
+# denisty plot 
+# data z normalneho rozdelenia
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$VIS)), mean(mandatory_data$VIS, na.rm = T), sd(mandatory_data$VIS, na.rm = T))))
+
+# porovnanie hodnot normalneho rozdelenia a VIS
+ggplot(mandatory_data, aes(x = VIS), color = 3) + 
+  geom_density(color = 2, size = 0.8) +
+  geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
+  geom_vline(aes(xintercept = mean(VIS, na.rm = T)),
+            color = 4, linetype = "dashed", size = 1) +
+  scale_x_continuous(breaks = seq(-60000, 80000, by = 10000)) +
+  labs(title = paste("Odhad hustoty viditeľnosti")) +
+  xlab("VIS") +
+  ylab("Hustota pravdepodobnosti")
+
+```
+
+
+**Husľový graf**
+
+Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že nejde o normálne rozdelenie. Dáta sú najpočetnejšie v okolí hodnoty 10000, postupne smerom k vyšším hodnotám sa ich hustota zmenšuje.
+
+```{r violin, warning = FALSE}
+
+# violin plot
+df <- mandatory_data %>%
+  dplyr::select('VIS') %>%
+  tidyr::gather(key = 'label', value = 'vis')
+
+ggplot(data = df, aes(factor(label), vis, fill = vis)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75), fill = "#8ad166") +
+  labs(title = paste("Husľový graf viditeľnosti"), y = "visibility", fill = "visibility") +
+  theme(axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  scale_y_continuous(breaks = seq(0, 80000, by = 10000))
+
+```
+
+**Q-Q graf**
+
+Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je v našom prípade rozdelenie nameraných hodnôt viditeľnosti. Keďže body sa najmä v okolí 0 odchyľujú od priamky normálneho rozdelenia, môžeme povedať, že rozdelenie hodnôt viditeľnosti nie je normálne.
+
+```{r qq, warning = FALSE}
+
+# QQ plot
+ggplot(data = mandatory_data, aes(sample = VIS)) +
+  stat_qq() + 
+  stat_qq_line() +
+  labs(title = paste("Q-Q graf viditeľnosti"))
+
+```
+
+**Graf polosum**
+
+Podobne aj z grafu polosum vidno, že hodnoty nie sú symetrické.
+
+```{r polosum, warning = FALSE}
+
+# polosum
+vis <- mandatory_data$VIS
+vis_asc <- sort(vis, decreasing = FALSE)
+vis_desc <- sort(vis, decreasing = TRUE)
+
+ggplot(data.frame(vis_asc), aes(x = vis_asc, y = 0.5*(vis_asc + vis_desc))) + 
+  geom_point(size = 2, color = "#013c7f") +
+  scale_x_continuous(breaks = seq(0, 80000, by = 10000)) +
+  labs(title = "Graf polosum pre viditeľnosť", x = "Viditeľnosť") +
+  theme_bw()
+
+```

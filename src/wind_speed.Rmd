@@ -1,0 +1,175 @@
+---
+title: "Wind speed"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r, include = FALSE}
+source('setup.R')
+```
+
+Atribút wind speed reprezentuje rýchlosť vetra v metroch za sekundu.
+
+```{r wnd_speed, warning = FALSE}
+load('.Rdata')
+
+summary(mandatory_data$WND_SPEED)
+mandatory_data['WND_SPEED'] %>% profiling_num()
+
+getmode(na.omit(mandatory_data$WND_SPEED)) # modus
+
+var(mandatory_data$WND_SPEED, na.rm = T) # rozptyl
+max(mandatory_data$WND_SPEED, na.rm = T) - min(mandatory_data$WND_SPEED, na.rm = T) # variacne rozpatie
+
+# Interquartile range and outliers
+Q1 <- quantile(mandatory_data$WND_SPEED, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(mandatory_data$WND_SPEED, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+IQR <- IQR(mandatory_data$WND_SPEED, na.rm = T) # interquartile range
+IQR_dev <- IQR/2
+
+# odlahle hodnoty
+length(which(mandatory_data$WND_SPEED < (Q1 - 1.5*IQR)))
+length(which(mandatory_data$WND_SPEED > (Q3 + 1.5*IQR)))
+
+# extremne hodnoty
+length(which(mandatory_data$WND_SPEED < (Q1 - 3*IQR)))
+length(which(mandatory_data$WND_SPEED > (Q3 + 3*IQR)))
+
+```
+
+Hodnota výberového mediánu je 1 a hodnota výberového priemeru 1.83. Keďže stredná hodnota (medián) je nižšia ako priemer, hodnotu priemeru mohli ovplyvniť výrazne vyššie hodnoty, prípadne extrémne vysoké hodnoty. Takže stredná hodnota rýchlosti vetra je 1 m/s.
+
+Modus - najčastejšia hodnota je rovnaká ako medián 1 m/s. Rýchlosť vetra bola pomerne nízka, väčšinou dosahovala len 1 m/s.
+ 
+Výberový rozptyl je 3.285.
+
+Výberová smerodajná odchýlka je 1.81. To znamená, že rýchlosť vetra sa pohybuje približne v rozsahu 1.81 m/s okolo priemeru. 
+
+Medzikvartilová odchýlka (IQR/2) je 1.05, teda hodnoty sú rozptýlené približne 1.05 okolo mediánu.
+
+Variačné rozpätie je 16. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou rýchlosti vetra. Maximálna rýchlosť vetra je 16 m/s a minimálna 0 m/s. 
+
+Variačný koeficient rýchlosti vetra je 0.99, čo je 99%. V porovanní s ostatnými atribútmi má rýchlosť vetra vyššiu variabilitu.
+
+
+**Boxplot**
+
+Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Hodnota 3.kvartilu je 2.6 a hodnota 1. kvartilu 0.5, teda medzikvartilové rozpätie (IQR) je 2.6 - 0.5 = 2.1. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou (1). Kedže sa nachádza pod polovicou krabice, podľa boxplotu sa zdá, že dáta sú zošikmené a teda nie sú rovnomerne rozptýlené okolo strednej hodnoty. Tiež vidíme, že krabica boxplotu sa nachádza v nižších hodnotách, teda 50% hodnôt tvoria nízke hodnoty, avšak je tu aj niekoľko vysokých hodnôt.
+
+Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
+Maximálna hodnota (5.75) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
+Minimálna hodnota je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie), v prípade rýchlosti je minimálna hodnota 0.
+
+Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt nad maximálnou hodnotou je 7811, pod minimálnou sa nenachádzajú žiadne odľahlé hodnoty. 
+
+Nakoniec pre odľahlé hodnoty overíme či patria medzi extrémne.
+Horná hranica extrémych hodnôt je vypočítaná ako 3.kvartil + 3 * IQR.
+Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
+V dátach sa nachádza 967 extrémne vysokých hodnôt, ktoré sú vyššie ako hodnota 3.kvartilu + 3 * IQR, teda vyššie ako 5.75 m/s.
+
+
+Hodnota šikmosti je kladná 1.58, to znamená, že väčšina hodnôt sa nachádza pod priemerom. Dáta sú zošimené a nejde o symetrické rozdelenie okolo strednej hodnoty. 
+
+Hodnota špicatosti je 6.2, je väčšia ako 3 teda hodnoty majú veľmi špicaté rozdelenie. To znamená, že početnosti hodnôt v súbore sú prevažne sústredené okolo strednej hodnoty.
+
+```{r boxplot, warning = FALSE}
+
+# boxplot
+boxplot(mandatory_data$WND_SPEED, col = "#308dd9", ylab = "WND_SPEED", main = "Wind speed boxplot")
+
+```
+
+**Histogram**
+
+Už z histogramu vidíme, že rozdelenie hodnôt je výrazne vyšikmené doľava. Najpočetnejšie sú hodnoty okolo 0 a 1. S narastajúcou rýchlosťou vetra postupne početnosť hodnôt klesá.
+
+```{r histogram, warning = FALSE}
+
+# histogram
+ggplot(mandatory_data, aes(x = WND_SPEED)) + 
+  geom_histogram(bins = 15, fill = "#308dd9", color = "#e9ecef") +
+  labs(title = paste("Wind speed histogram")) +
+  xlab("WND_SPEED") +
+  ylab("Frequency") +
+  scale_x_continuous(breaks = seq(0, 16, by = 1)) +
+  scale_y_continuous(breaks = seq(0, 60000, by = 5000))
+
+```
+
+
+**Graf hustoty**
+
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt rýchlosti vetra (červená čiara). Čiary sa výrazne líšia, teda nejde o normálne rozdelenie. Modrá prerušovaná čiara predstavuje priemernú rýchlosť vetra. V dátach sa nachádza niekoľko vrcholov, najvyšší je v bode 1. 
+
+```{r density plot, warning = FALSE}
+
+# denisty plot 
+# data z normalneho rozdelenia
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$WND_SPEED)), mean(mandatory_data$WND_SPEED, na.rm = T), sd(mandatory_data$WND_SPEED, na.rm = T))))
+
+# porovnanie hodnot normalneho rozdelenia a WND_SPEED
+ggplot(mandatory_data, aes(x = WND_SPEED), color = 3) + 
+  geom_density(color = 2, size = 0.8) +
+  geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
+  geom_vline(aes(xintercept = mean(WND_SPEED, na.rm = T)),
+            color = 4, linetype = "dashed", size = 1) +
+  scale_x_continuous(breaks = seq(-20, 50, by = 1)) +
+  labs(title = paste("Odhad hustoty rýchlosti vetra")) +
+  xlab("WND_SPEED") +
+  ylab("Hustota pravdepodobnosti")
+
+```
+
+**Husľový graf**
+
+Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že nejde o normálne rozdelenie. Dáta sú striedavo rozdelené od 0 po 5 ale vyskytujú sa v nich aj vysoké hodnoty (dlhá čiara).
+
+```{r violin, warning = FALSE}
+
+# violin plot
+df <- mandatory_data %>%
+  dplyr::select('WND_SPEED') %>%
+  tidyr::gather(key = 'label', value = 'speed')
+
+ggplot(data = df, aes(factor(label), speed, fill = speed)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75), fill = "#308dd9") +
+  labs(title = paste("Husľový graf rýchlosti vetra"), y = "Wind speed", fill = "speed") +
+  theme(axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank()) +
+  scale_y_continuous(breaks = seq(0, 200, by = 1)) 
+
+```
+
+**Q-Q graf**
+
+Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je v našom prípade rozdelenie nameraných hodnôt rýchosti vetra. Keďže body sa výrazne odchyľujú od priamky normálneho rozdelenia, môžeme povedať, že rozdelenie hodnôt rýchlosti vetra nie je normálne.
+
+```{r qq, warning = FALSE}
+
+# QQ plot
+ggplot(data = mandatory_data, aes(sample = WND_SPEED)) +
+  stat_qq() + 
+  stat_qq_line() +
+  labs(title = paste("Q-Q graf rýchlosti vetra"))
+
+```
+
+**Graf polosum**
+
+Z grafu vidíme, že hodnoty nie sú symetrické.
+
+```{r polosum, warning = FALSE}
+
+# polosum
+speed <- mandatory_data$WND_SPEED
+speed_asc <- sort(speed, decreasing = FALSE)
+speed_desc <- sort(speed, decreasing = TRUE)
+
+ggplot(data.frame(speed_asc), aes(x = speed_asc, y = 0.5*(speed_asc + speed_desc))) + 
+  geom_point(size = 2, color = "#013c7f") +
+  scale_x_continuous(breaks = seq(0, 400, by = 20)) +
+  labs(title = "Graf polosum pre rýchlosť vetra", x = "Rýchlosť vetra") +
+  theme_bw()
+
+```
