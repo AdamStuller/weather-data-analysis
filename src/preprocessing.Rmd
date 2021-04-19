@@ -3,24 +3,13 @@ title: "Preprocessing"
 output: html_document
 ---
 
-```{r, include=FALSE}
-# install.packages("tidyverse")
-# install.packages("funModeling")
-# install.packages("Hmisc")
-# install.packages('data.table')
-# install.packages('corrplot')
-library(lubridate)
-library(tidyverse)
-library(Hmisc)
-library(data.table)
-library(funModeling)
-
-library(corrplot)
+```{r, include = FALSE}
+source('setup.R')
 ```
 
 
 
-```{r NA, echo=FALSE}
+```{r NA, echo = FALSE}
 
 NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999', '009999')
 
@@ -87,182 +76,11 @@ read.csv(file= "../data/all_data.csv") %>%
 
 ```{r}
 all_data <- read.csv(file= "../data/all.csv")
+View(all_data)
 
 ```
 
 
-### Split date into seperated columns
-(Filter each 6 hours)
-
-
-```{r}
-
-mandatory_date_split <- mutate(mandatory_data, day = mday(DATE), month = month(DATE), year = year(DATE), hour = hour(DATE), min = minute(DATE))
-
-# Select each 6 hours
-data_6_hours <- mandatory_date_split %>% filter(hour %in% c(0,6,12,18))
-
-# Select January 2010
-jan_2010 <- filter(data_6_hours, month == 1, year == 2010)
-
-ggplot(data = jan_2010) + 
-  geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
-  geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
-  labs(title = "Temperature 2010", y = "TMP") 
-
-# Select January 2020
-jan_2020 <- filter(data_6_hours, month == 1, year == 2020)
-
-ggplot(data = jan_2020) + 
-  geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
-  geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
-  labs(title = "Temperature 2020", y = "TMP") 
- 
-
-# Mean TMP 2010
-mean_tmp_2010 <- filter(mandatory_date_split, year == 2010) %>% group_by(month) %>% summarise(mean = mean(TMP))
-
-months <- c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
-
-ggplot(mean_tmp_2010, aes(x = factor(months,months), y = mean)) +
-  geom_col(mapping = aes(fill = factor(months,months))) +
-  geom_text(mapping = aes(label = round(mean,2)), vjust = -0.5) +
-  geom_line(mapping = aes(x = month, y = mean), size = 0.8) +
-  labs(title = paste("Mean monthly temperature in 2010"), x = "Month", y = "Mean temperature",
-       fill = "Months") +
-  scale_y_continuous(breaks = seq(-10, 30, by = 2)) 
-  
-
-
-# Mean TMP 2020
-mean_tmp_2020 <- filter(mandatory_date_split, year == 2020) %>% group_by(month) %>% summarise(mean = mean(TMP))
-
-ggplot(mean_tmp_2020, aes(x = factor(months,months), y = mean)) +
-  geom_col(mapping = aes(fill = factor(months,months))) +
-  geom_text(mapping = aes(label = round(mean,2)), vjust = -0.5) +
-  geom_line(mapping = aes(x = month, y = mean), size = 0.8) +
-  labs(title = paste("Mean monthly temperature in 2020"), x = "Month", y = "Mean temperature",
-       fill = "Months") +
-  scale_y_continuous(breaks = seq(-10, 30, by = 2)) 
-  
-
-
-# Mean TMP by year
-mean_yr_tmp <- mandatory_date_split %>% group_by(year) %>% summarise(mean = mean(na.omit(TMP)))
-
-ggplot(mean_yr_tmp, aes(x = year, y = mean)) +
-  geom_col(mapping = aes(fill = factor(year,year))) +
-  geom_text(mapping = aes(label = round(mean,2)), vjust = 1.8) +
-  geom_line(mapping = aes(x = year, y = mean), size = 0.8) +
-  labs(title = paste("Mean annual temperature in 2010 - 2020"), x = "Year", y = "Mean temperature",
-       fill = "Years")  +
-  scale_y_continuous(breaks = seq(0, 30, by = 2)) +
-  scale_x_continuous(breaks = seq(2010, 2020, by = 1))
-
-
-```
-
-### Mode function
-
-```{r mode_function}
-
-# modus
-getmode <- function(v) {
-   uniqv <- unique(v)
-   uniqv[which.max(tabulate(match(v, uniqv)))]
-}
-
-getmode(na.omit(mandatory_data$TMP))
-getmode(na.omit(mandatory_data$WND_ANGLE))
-getmode(na.omit(mandatory_data$WND_SPEED))
-getmode(na.omit(mandatory_data$VIS))
-getmode(na.omit(mandatory_data$SLP))
-getmode(na.omit(mandatory_data$CIG))
-getmode(na.omit(mandatory_data$DEW))
-
-```
-
-
-
-### Mean daily temperature
-
-```{r, echo=FALSE, eval=FALSE}
-
-mean_tmp <- mandatory_data %>%
-  dplyr::mutate(DAY =  ymd_hms(DATE)) %>%
-  dplyr::group_by(month=floor_date(DAY, unit="month")) %>%
-  dplyr::summarise(mean = mean(TMP)) 
-
-months <- c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
-
-ggplot(data = mean_tmp) + 
-  geom_col(mapping=aes(x=factor(months,months), y=mean)) +
-  labs(title="Priemerna mesačná teplota za rok 2019", y="Teplota", x="Mesiace")
-```
-
-
-
-```{r}
-ggplot(data = mandatory_data, aes(sample=TMP)) +
-  stat_qq() + 
-  stat_qq_line()
-```
-
-
-### Firstly we must have a look at temperature 
-```{r}
-#quantile(mandatory_data$TMP)
-
-df <- mandatory_data %>%
-  dplyr::select('TMP') %>%
-  tidyr::gather(key='label', value = 'temp')
-
-ggplot(data = df, aes(factor(label), temp, fill=label)) +
-  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
-```
-
-
-```{r}
-df <- mandatory_data %>% 
-  dplyr::mutate(
-    year = ymd_hms(DATE) %>% 
-      lubridate::year() %>% 
-      map_chr(~ as.character(.x))
-  ) %>%
-  dplyr::select(all_of(c('year', 'TMP')))
-
-ggplot(data = df, aes(factor(year), TMP, fill=year)) +
-  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
-
-```
-
-
-```{r}
-
-df <- mandatory_data %>% 
-  dplyr::mutate(
-    year = ymd_hms(DATE) %>% 
-      lubridate::year() %>% 
-      map_chr(~ as.character(.x))
-  ) %>%
-  dplyr::select(all_of(c('year', 'TMP')))
-
-ggplot(data = df, aes( TMP,factor(year), colour=year)) +
-  geom_jitter() 
-``` 
-
-```{r}
-df <- mandatory_data %>% 
-  dplyr::mutate(
-    year = ymd_hms(DATE) %>% 
-      lubridate::year() %>% 
-      map_chr(~ as.character(.x))
-  ) %>%
-  dplyr::select(all_of(c('year', 'TMP')))
-
-ggplot(data = df, aes( TMP,factor(year), colour=year)) +
-  geom_boxplot() 
-```
 # Kruhovy graf G17
 
 Dufal som ze to bude jednoduche ale exponencialne rozdelenie aj normalne aj to nase mi dava uplne presne kruhy, takze tak bude asi nejaka chyba... pockame, kum to Michal urobi pre erko. 
@@ -307,26 +125,6 @@ ggplot(mapping=aes( x=e_Vx, y=e_Vy)) +
 ```
 
 
-According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
-
-Second information does not concern us and is thus removed. Both values are separated and only temperature is kept. Temperature is then converted to numeric (if not 9999) and divided by 10.     
-
-Similarly we need to process other attributes: Wind, Visibility, Pressure, Ceiling and Dew.
-
-**AIR-TEMPERATURE-OBSERVATION dew point temperature**
-
-The temperature to which a given parcel of air must be cooled at constant pressure and water vapor content in order for saturation to occur.
-
-MIN: -0982 
-MAX: +0368 
-UNITS: Degrees Celsius 
-SCALING FACTOR: 10 
-DOM: A general domain comprised of the numeric characters (0-9), a plus sign (+), and a minus sign (-).
-
-+9999 = Missing.
-
-
-
 ## Exploratory data analysis
 
 Firstly we look at data structure(str) which gives us information about number of observations(rows) and columns, column names and types and a head of the first observations. Secondly we look at the data summary - numbers of zeros, missing values, infinite numbers and unique values. 
@@ -341,236 +139,15 @@ summary(mandatory_data)
 
 describe(mandatory_data)
 
-```
-
-
-As we can see there are no categorical variables in our data, so let's have a look at numerical variables. 
-
-### Analyzing numerical variables
-
-```{r}
-
 profiling_num(mandatory_data) %>% select(variable, mean, std_dev, range_98)
 
 ```
 
 
-For each variable there is a histogram showing values frequency and boxplot which helps us detect potential outliers and also visualize minimum, maximum, median, 1.(0.25) and 3. quartiles (0.75). All observations above (q(0.75) + 1.5*IQR) or below (q(0.25) - 1.5*IQR) are considered as potential outliers (IQR = difference between 3. and 1. quartile). Such observations are displayed as points in the boxplot.
-
-
-#### Temperature
-
-Hodnota výberového mediánu je 10 a hodnota výberového priemeru 9.9. Rozdiel hodnôt je iba 0.1 teda výberový priemer môžme považovať za dobrý odhad strednej hodnoty. 
-
-Výberový rozptyl je 91.74908, čo je stredná kvadratická odchýlka hodnôt od výberového priemeru. Vyjadruje ako veľmi sú hodnoty rozptýlené od priemeru. Čím je väčší, tým viac sa hodnoty odchyľujú od priemeru.
-
-Výberová smerodajná odchýlka je 9.578574. Vyjadruje kvadratický priemer odchýlok jednotlivých hodnôt teploty od ich aritmetického priemeru. Jej hodnota môže byť vyššia v porovnaní s medzikvartilovou odchýlkou pretože v dátach sa nachádza niekoľko odľahlých hodnôt.
-
-Medzikvartilová odchýlka (IQR/2) je 7.05, čo je v porovnaní so smerodajnou odchýlkou o niečo menej.
-
-Variačné rozpätie je 62.3. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou teploty. Jeho veľkosť závisí iba od krajných hodnôt, pričom v tomto prípade spodná hranica patrí medzi odľahlé hodnoty. Preto variačné rozpätie mimo odľahlých hodnôt bude o niečo menšie.
-
-Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 0.97, čo je 97%, čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
-
-
-
-**Boxplot**
-Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Krabica zobrazuje rozsah v ktorom sa nachádza 50% hodnôt - medzikvartilové rozpätie, čo je hodnota 3.kvartilu - hodnota 1. kvartilu. Hodnota 3.kvartilu je 17 a hodnota 1. kvartilu 2.9, teda medzikvartilové rozpätie (IQR) je 17 - 2.9 = 14.1. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou. Kedže sa nachádza v strede, dáta nie sú zošikmené ale sú rovnomerne rozptýlené okolo strednej hodnoty.
-
-Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
-Maximálna hodnota je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
-Minimálna hodnota je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie).
-
-Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt pod minimálnou hodnotou je 154, nad maximálnou sa nenachádzajú žiadne odľahlé hodnoty. 
-
-Nakoniec pre odľahlé hodnoty overíme či patria medzi extrémne.
-Horná hranica extrémych hodnôt je vypočítaná ako 3.kvartil + 3 * IQR.
-Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
-Takéto hodnoty sa v našich dátach nevyskytujú.
-
-
-Šikmosť vyjadruje zošikmenie súboru, teda či prevažujú vysoké alebo nízke hodnoty. Hodnota šikmosti je takmer nulová (0.0008356282) teda hodnoty nie sú zošikmené a ide o symetrické rozdelenie. 
-Špicatosť vyjadruje rozloženie dát v súbore. Hodnota špicatosti je 2.607313, je menšia ako 3 teda hodnoty majú trocha plochšie rozdelenie ako je normálne. To znamená, že v súbore máme trocha viac hodnôt, ktoré nie sú blízko k priemeru.
-
-
-**Odhad hustoty teploty**
-Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara). Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlnený oproti normálnemu rozdeleniu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia.
-
-
-```{r}
-summary(mandatory_data$TMP)
-mandatory_data['TMP'] %>% profiling_num()
-
-var(mandatory_data$TMP, na.rm = T) # rozptyl
-max(mandatory_data$TMP, na.rm = T) - min(mandatory_data$TMP, na.rm = T)
-
-EnvStats::cv(mandatory_data$TMP, na.rm = T) # variacny koeficient
-
-
-# Interquartile range and outliers
-Q1 <- quantile(mandatory_data$TMP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
-Q3 <- quantile(mandatory_data$TMP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
-IQR <- IQR(mandatory_data$TMP, na.rm = T ) # interquartile range
-IQR_dev <- IQR/2
-
-# odlahle
-length(which(mandatory_data$TMP < (Q1 - 1.5*IQR)))
-length(which(mandatory_data$TMP > (Q3 + 1.5*IQR)))
-
-# extremne
-length(which(mandatory_data$TMP < (Q1 - 3*IQR)))
-length(which(mandatory_data$TMP > (Q3 + 3*IQR)))
-
-
-# histogram
-ggplot(mandatory_data, aes(x=TMP)) + 
-  geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
-  labs(title = paste("Temperature histogram")) +
-  xlab("TMP") +
-  ylab("Frequency") +
-  scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
-  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
-
-
-# boxplot
-boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
-
-
-# denisty plot 
-# data z normalneho rozdelenia
-data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$TMP)), mean(mandatory_data$TMP, na.rm = T), sd(mandatory_data$TMP, na.rm = T))))
-
-# porovnanie hodnot normalneho rozdelenia a hodnot teploty
-ggplot(mandatory_data, aes(x=TMP),color = 3) + 
-  geom_density(color = 2, size = 0.8) +
-  geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
-  geom_vline(aes(xintercept=mean(TMP, na.rm = T)),
-            color = 4, linetype="dashed", size=1) +
-  scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
-  labs(title = paste("Odhad hustoty teploty")) +
-  xlab("TMP") +
-  ylab("Hustota pravdepodobnosti")
-
-
-
-# polosum
-tmp <- mandatory_data$TMP
-tmp_asc <- sort(tmp, decreasing = FALSE)
-tmp_desc <- sort(tmp, decreasing = TRUE)
-
-ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) + 
-  geom_point(size = 2, color = 2) +
-  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
-  labs(title = "Graf polosum pre teplotu", x = "Teplota") +
-  theme_bw()
-
-
-
-```
-
-```{r}
-
-```
-
-
-### Wind angle
-
-```{r}
-summary(mandatory_data$WND_ANGLE)
-mandatory_data['WND_ANGLE'] %>% profiling_num()
-
-
-hist(mandatory_data$WND_ANGLE,
-  xlab = "WND_ANGLE",
-  main = "Wind angle histogram",
-  breaks = sqrt(nrow(mandatory_data)/4),
-  col = 3
-)
-
-boxplot(mandatory_data$WND_ANGLE, col = 3, ylab = "WND_ANGLE", main = "Wind angle boxplot")
-
-
-```
-
-### Wind speed
-
-```{r}
-summary(mandatory_data$WND_SPEED)
-mandatory_data['WND_SPEED'] %>% profiling_num()
-
-
-hist(mandatory_data$WND_SPEED,
-  xlab = "WND_SPEED",
-  main = "Wind speed histogram",
-  breaks = 10,
-  col = 4
-)
-
-boxplot(mandatory_data$WND_SPEED, col = 4, ylab = "WND_SPEED", main = "Wind speed boxplot")
-
-
-```
-
-### Visibility
-
-```{r}
-summary(mandatory_data$VIS)
-mandatory_data['VIS'] %>% profiling_num()
-
-
-hist(mandatory_data$VIS,
-  xlab = "VIS",
-  main = "Visibility histogram",
-  breaks = 30,
-  col = 5
-)
-
-boxplot(mandatory_data$VIS, col = 5, ylab = "VIS", main = "Visibility boxplot")
-
-
-```
-
-### Pressure
-
-```{r}
-summary(mandatory_data$SLP)
-mandatory_data['SLP'] %>% profiling_num()
-
-
-hist(mandatory_data$SLP,
-  xlab = "SLP",
-  main = "Pressure histogram",
-  breaks = sqrt(nrow(mandatory_data)/2),
-  col = 6
-)
-
-boxplot(mandatory_data$SLP, col = 6, ylab = "SLP", main = "Pressure boxplot")
-
-```
-
-### Ceiling
-
-```{r}
-summary(mandatory_data$CIG)
-mandatory_data['CIG'] %>% profiling_num()
-
-
-hist(mandatory_data$CIG,
-  xlab = "CIG",
-  main = "Ceiling histogram",
-  breaks = 20,
-  col = 7
-)
-
-boxplot(mandatory_data$CIG, col = 7, ylab = "CIG", main = "Ceiling boxplot")
-
-
-```
-
 
 ```{r}
 # korelacie vybranych numerickych atributov - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW
-mdata_select <- select(mandatory_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW)
+mdata_select <- select(all_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24)
 mdata_cor <- cor(mdata_select, use = "na.or.complete")
 
 corrplot(mdata_cor, tl.col = "black", order = "AOE")
@@ -582,24 +159,133 @@ corrplot(mdata_cor, method = "shade", shade.col = NA, tl.col = "black", addCoef.
 ```
 
 
-# PWO column
-
-PWO_LABEL = case_when(
-      PWO == 0 ~ "Cloud covering less then 1/2",
-      PWO == 1 ~ "Cloud covering +- 1/2",
-      PWO == 2 ~ "Cloud covering more then 1/2",
-      PWO == 3 ~ "Sandstorm, duststorm or blowing snow",
-      PWO == 4 ~ "Fog or ice fog or thick haze",
-      PWO == 5 ~ "Drizzle",
-      PWO == 6 ~ "Rain",
-      PWO == 7 ~ "Snow, or rain and snow mixed",
-      PWO == 8 ~ "Shower(s)",
-      PWO == 9 ~ "Thunderstorm(s)",
-      TRUE     ~ as.character(PWO)
-    ),
-
 
 ```{r}
 pairs(~TMP + SLP+DEW+VIS+WND_SPEED+CIG+WND_ANGLE+ SLP, data=mandatory_data)
 ```
 
+
+
+
+```{r}
+all_data_split_date <- mutate(
+    all_data, 
+    time = format(as_datetime(DATE), format = "%H:%M:%S"),
+    date = format(as_date(DATE), format = "%Y-%m-%d"),
+    month = month(DATE),
+    year = year(DATE)
+  )
+
+data_temperature <- all_data_split_date %>% select('DATE', 'TMP', 'time', 'date', 'year', 'month')
+data_temperature <- data_temperature[!is.na(data_temperature$TMP), ]
+data_temperature
+
+
+```
+
+
+```{r}
+df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), year = year)
+df_dayMean_tmp <- unique(df_dayMean_tmp)
+df_dayMean_tmp$md <- substr(df_dayMean_tmp$date, start = 6, stop = 10)
+df_dayMean_tmp <- df_dayMean_tmp[,-1]  
+df_dayMean_tmp  
+
+monthDay <- sort(unique(df_dayMean_tmp$md))
+
+table_dayMean_tmp <- data.table(year = df_dayMean_tmp$year, md = df_dayMean_tmp$md, tmp = df_dayMean_tmp$tmp)
+
+table_dayMean_tmp
+
+
+p <- dcast(table_dayMean_tmp, formula = year ~ md, value.var = 'tmp' )
+p
+
+```
+
+
+
+```{r}
+# priemerna mesacna teplota 
+df_monthMean_tmp <- data_temperature %>% group_by(year,month) %>% summarise(tmp = na.omit(mean(TMP)))
+df_monthMean_tmp
+
+table_monthMean_tmp <- data.table(year = df_monthMean_tmp$year, month = df_monthMean_tmp$month, tmp = df_monthMean_tmp$tmp)
+table_monthMean_tmp
+
+p <- dcast(table_monthMean_tmp, formula = year ~ month, value.var = 'tmp' )
+p
+
+data_month_matrix <- as.matrix(p[,-1])
+dim(data_month_matrix)
+
+library(RColorBrewer)
+heatmap(data_month_matrix, 
+        labRow = sort(p$year), 
+        scale = 'none', 
+        main = "Heatmap (teplota ~ mesiac ~ rok)", 
+        col = colorRampPalette(c("#1d539f", "#408ab5" ,"#74ADD1", "#ABD9E9" ,"#E0F3F8" ,"#FFFFBF", "#FEE090","#fd9268",   "#9E0142"))(25))
+
+
+h <- stats::hclust(dist(data_month_matrix), method = "ward.D")
+plot(h, labels = p$year, sub = "")
+
+
+```
+
+
+
+
+
+```{r}
+data_month_matrix
+
+som_grid <- kohonen::somgrid(xdim = 3, ydim = 2, topo = "hexagonal")
+
+som_model <- kohonen::som(X = data_month_matrix, grid = som_grid,
+              rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 4)
+
+plot(som_model, type="changes")
+
+p1 <- ~graphics::plot(som_model, type = "count", shape = "straight", palette.name = terrain.colors, heatkeywidth = 0.2)
+p2 <- ~graphics::plot(som_model, type = "dist.neighbours", shape = "straight", palette.name = terrain.colors)
+plot(p2)
+
+graphics::plot(som_model, type = "codes", shape = "straight")
+
+somkody <- as.data.frame(t(som_model$codes[[1]]))
+somkody
+
+som_model$unit.classif # zadelenie rokov do tried
+table(som_model$unit.classif)
+
+roky <- c(1973:2020)
+roky
+
+klastre <- data.frame(rok = roky, trieda = som_model$unit.classif)
+klastre %>% filter(trieda == 6)
+
+
+ggplot(data.table(Month = 1:12, Tmp = somkody[,1]), aes(Month, Tmp)) +
+  geom_line(size = 1) + geom_point(size = 2) + 
+  geom_smooth(method = 'loess', formula = 'y ~ x',se = F) +
+  scale_y_continuous(breaks = seq(-10, 30, by = 2)) +
+  labs(x = "Month", y = "Tmp") +
+  theme_bw() 
+
+
+measures1 <- c(1)
+som1 <- kohonen::som(scale(data_month_matrix[,measures1]), grid = kohonen::somgrid(3, 2, "rectangular"))
+plot(som1, main = "Default SOM Plot")
+
+# reverse color ramp
+colors <- function(n, alpha = 1) {
+    rev(heat.colors(n, alpha))
+}
+plot(som1, type = "counts", palette.name = colors, heatkey = TRUE)
+par(mfrow = c(1, 2))
+plot(som1, type = "mapping", pchs = 20, main = "Mapping Type SOM")
+plot(som1, type = "dist.neighbours", palette.name = terrain.colors)
+
+som1$unit.classif
+```
