@@ -173,73 +173,124 @@ all_data_split_date <- mutate(
     time = format(as_datetime(DATE), format = "%H:%M:%S"),
     date = format(as_date(DATE), format = "%Y-%m-%d"),
     month = month(DATE),
-    year = year(DATE)
+    year = year(DATE),
+    md = substr(DATE, start = 6, stop = 10)
   )
 
-data_temperature <- all_data_split_date %>% select('DATE', 'TMP', 'time', 'date', 'year', 'month')
+data_temperature <- all_data_split_date %>% dplyr::select('DATE', 'TMP', 'time', 'date', 'year', 'month', 'md')
 data_temperature <- data_temperature[!is.na(data_temperature$TMP), ]
 data_temperature
-
 
 ```
 
 
 ```{r}
-df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), year = year)
+# priemerna denna teplota 
+df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), year = year, md = md)
 df_dayMean_tmp <- unique(df_dayMean_tmp)
-df_dayMean_tmp$md <- substr(df_dayMean_tmp$date, start = 6, stop = 10)
-df_dayMean_tmp <- df_dayMean_tmp[,-1]  
 df_dayMean_tmp  
 
-monthDay <- sort(unique(df_dayMean_tmp$md))
+
+ggplot(df_dayMean_tmp, aes(x = as.Date(date), y = tmp)) +
+  geom_line(color = "#4b9295") + 
+  geom_smooth(color = 2) +
+  labs(title = "Priemerné denné teploty: 1973 - 2020", x = "dátum", y = "teplota") +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(-30,30, by = 3))
+
 
 table_dayMean_tmp <- data.table(year = df_dayMean_tmp$year, md = df_dayMean_tmp$md, tmp = df_dayMean_tmp$tmp)
-
 table_dayMean_tmp
 
+# vytvorenie tabulky 
+# table_year_md_tmp <- dcast(table_dayMean_tmp, formula = year ~ md, value.var = 'tmp' ) # riadky = roky, stlpce = dni
+table_year_md_tmp <- dcast(table_dayMean_tmp, formula = md ~ year, value.var = 'tmp' ) # riadky = dni, stlpce = roky
+table_year_md_tmp
 
-p <- dcast(table_dayMean_tmp, formula = year ~ md, value.var = 'tmp' )
-p
+```
 
+
+```{r}
+# SOM mapa -> roky a dni
+# vytvorenie matice
+data_md_matrix <- as.matrix(table_year_md_tmp[,-1])
+dim(data_md_matrix)
+
+som_grid <- kohonen::somgrid(xdim = 4, ydim = 3, topo = "hexagonal")
+
+som_model <- kohonen::som(X = data_md_matrix, grid = som_grid,
+              rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 9)
+
+plot(som_model, type="changes")
+
+graphics::plot(som_model, type = "codes", shape = "straight")
+
+som_model$unit.classif # zadelenie dni do tried
+table(som_model$unit.classif)
+
+som_model$grid
+som_model$codes[[1]]
+
+degrade.bleu <- function(n){
+  return(rgb(0,0.4,1,alpha=seq(0,1,1/n)))
+}
+
+plot(som_model,type="count",palette.name=degrade.bleu)
+
+dc <- dist(som_model$codes[[1]])
+
+cah <- hclust(dc,method="ward.D2",members=table(som_model$unit.classif))
+plot(cah,hang=-1,labels=F)
+
+groupes <- cutree(cah,k=3)
+print(groupes)
 ```
 
 
 
 ```{r}
 # priemerna mesacna teplota 
-df_monthMean_tmp <- data_temperature %>% group_by(year,month) %>% summarise(tmp = na.omit(mean(TMP)))
+df_monthMean_tmp <- data_temperature %>% group_by(year,month) %>% summarise(tmp = na.omit(mean(TMP)), date = date)
 df_monthMean_tmp
 
+ggplot(df_monthMean_tmp, aes(x = as.Date(date), y = tmp)) +
+  geom_line( color="#882545") + 
+  geom_smooth(color = 4) +
+  labs(title = "Priemerné mesačné teploty: 1973 - 2020", x = "dátum", y = "teplota") +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(-30,30, by = 3))
+
+
 table_monthMean_tmp <- data.table(year = df_monthMean_tmp$year, month = df_monthMean_tmp$month, tmp = df_monthMean_tmp$tmp)
+table_monthMean_tmp <- unique(table_monthMean_tmp)
 table_monthMean_tmp
 
-p <- dcast(table_monthMean_tmp, formula = year ~ month, value.var = 'tmp' )
-p
+# vytvorenie tabulky 
+table_year_month_tmp <- dcast(table_monthMean_tmp, formula = year ~ month, value.var = 'tmp' ) # riadky = roky, stlpce = dni
+# table_year_month_tmp <- dcast(table_monthMean_tmp, formula = month ~ year, value.var = 'tmp' ) # riadky = dni, stlpce = roky
+table_year_month_tmp
 
-data_month_matrix <- as.matrix(p[,-1])
+# matica
+data_month_matrix <- as.matrix(table_year_month_tmp[,-1])
 dim(data_month_matrix)
 
+# HEATMAP
 library(RColorBrewer)
 heatmap(data_month_matrix, 
-        labRow = sort(p$year), 
+        labRow = sort(table_year_month_tmp$year), 
         scale = 'none', 
         main = "Heatmap (teplota ~ mesiac ~ rok)", 
-        col = colorRampPalette(c("#1d539f", "#408ab5" ,"#74ADD1", "#ABD9E9" ,"#E0F3F8" ,"#FFFFBF", "#FEE090","#fd9268",   "#9E0142"))(25))
+        col = colorRampPalette(c("#1d539f", "#408ab5" ,"#74ADD1", "#ABD9E9" ,"#E0F3F8" ,"#FFFFBF", "#feea90", "#fd9f68", "#a70146"))(25))
 
 
 h <- stats::hclust(dist(data_month_matrix), method = "ward.D")
-plot(h, labels = p$year, sub = "")
-
-
-```
+plot(h, labels = table_year_month_tmp$year, sub = "")
 
 
 
-
-
-```{r}
-data_month_matrix
-
+# SOM mapa -> roky a mesiace
 som_grid <- kohonen::somgrid(xdim = 3, ydim = 2, topo = "hexagonal")
 
 som_model <- kohonen::som(X = data_month_matrix, grid = som_grid,
@@ -247,45 +298,132 @@ som_model <- kohonen::som(X = data_month_matrix, grid = som_grid,
 
 plot(som_model, type="changes")
 
-p1 <- ~graphics::plot(som_model, type = "count", shape = "straight", palette.name = terrain.colors, heatkeywidth = 0.2)
-p2 <- ~graphics::plot(som_model, type = "dist.neighbours", shape = "straight", palette.name = terrain.colors)
-plot(p2)
-
 graphics::plot(som_model, type = "codes", shape = "straight")
 
-somkody <- as.data.frame(t(som_model$codes[[1]]))
-somkody
-
-som_model$unit.classif # zadelenie rokov do tried
-table(som_model$unit.classif)
-
-roky <- c(1973:2020)
-roky
-
-klastre <- data.frame(rok = roky, trieda = som_model$unit.classif)
-klastre %>% filter(trieda == 6)
+som_model$unit.classif # zadelenie mesiacov do tried
+table(som_model$unit.classif) # pocty v triedach
 
 
-ggplot(data.table(Month = 1:12, Tmp = somkody[,1]), aes(Month, Tmp)) +
-  geom_line(size = 1) + geom_point(size = 2) + 
-  geom_smooth(method = 'loess', formula = 'y ~ x',se = F) +
-  scale_y_continuous(breaks = seq(-10, 30, by = 2)) +
-  labs(x = "Month", y = "Tmp") +
-  theme_bw() 
+df <- data.frame(Year = c(1973:2020), Class = som_model$unit.classif)
+df
+
+# 1.skupina - 1973,76,77,78,79,80,81,84,91,97,2004
+# 2.skupina - 89,90,92,99,2001,2002,2011,2016
+# 3.skupina - 74,75,83,88,94,95,98,2007
+# 4.skupina - 82,85,86,87,93,96,2005,2006
+# 5.skupina - 2000,2003,2009,2010,2012,2017
+# 6.skupina - 2008,2013,14,15,18,19,2020
+
+df_1 <- df_monthMean_tmp %>% filter(year %in% c(1973,1976,1977,1978,1979,1980,1981,1984,1991,1997,2004)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_1_mean <- mean(df_1$mean_tmp)
+
+df_2 <- df_monthMean_tmp %>% filter(year %in% c(1989,1990,1992,1999,2001,2002,2011,2016)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_2_mean <- mean(df_2$mean_tmp)
+
+df_3 <- df_monthMean_tmp %>% filter(year %in% c(1974,1975,1983,1988,1994,1995,1998,2007)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_3_mean <- mean(df_3$mean_tmp)
+
+df_4 <- df_monthMean_tmp %>% filter(year %in% c(1982,1985,1986,1987,1993,1996,2005,2006)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_4_mean <- mean(df_4$mean_tmp)
+
+df_5 <- df_monthMean_tmp %>% filter(year %in% c(2000,2003,2009,2010,2012,2017)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_5_mean <- mean(df_5$mean_tmp)
+
+df_6 <- df_monthMean_tmp %>% filter(year %in% c(2008,2013,2014,2015,2018,2019,2020)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+tmp_6_mean <- mean(df_6$mean_tmp)
+
+tmp_1_mean
+tmp_2_mean
+tmp_3_mean
+tmp_4_mean
+tmp_5_mean
+tmp_6_mean
+
+```
 
 
-measures1 <- c(1)
-som1 <- kohonen::som(scale(data_month_matrix[,measures1]), grid = kohonen::somgrid(3, 2, "rectangular"))
-plot(som1, main = "Default SOM Plot")
 
-# reverse color ramp
-colors <- function(n, alpha = 1) {
-    rev(heat.colors(n, alpha))
+
+
+
+```{r}
+# Predikcia na 1 rok
+
+df_monthMean_tmp <- df_monthMean_tmp %>% dplyr::select(year,month,tmp)
+df_monthMean_tmp <- unique(df_monthMean_tmp)
+
+data_ts <- ts(df_monthMean_tmp$tmp, start = c(1973, 1), end = c(2020, 12), frequency = 12)
+data_ts
+
+arima_model <- auto.arima(data_ts)
+summary(arima_model)
+fore_arima = forecast::forecast(arima_model, h = 12)
+df_arima = as.data.frame(fore_arima)
+df_arima
+
+```
+
+```{r}
+df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), date = date)
+df_dayMean_tmp <- unique(df_dayMean_tmp)
+df_dayMean_tmp$date_ts <- c(1:length(df_dayMean_tmp$date))
+df_dayMean_tmp
+
+# time series LM 
+lm_ts <- lm(formula = tmp ~ date, data = df_dayMean_tmp)
+lm_ts$coefficients
+
+
+attach(df_dayMean_tmp)
+
+pairs( ~ tmp + date, panel = function(x,y){
+  points(x,y)
+  abline(lm(y~x), col = 2)})
+```
+
+
+```{r}
+# zrazky a tmp linearna regresia
+df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), date = date)
+df_dayMean_tmp <- unique(df_dayMean_tmp)
+df_dayMean_tmp
+
+
+data_lp <- all_data_split_date %>% dplyr::select('DATE', 'LP', 'time', 'date', 'year', 'month', 'md')
+data_lp <- data_lp[!is.na(data_lp$LP), ] %>% separate(LP, c('LPtime', 'LP', NA, NA), sep=',') 
+data_lp$LP <- as.double(data_lp$LP)
+data_lp <-  data_lp %>% dplyr::mutate(LP = map_dbl(.$LP, process_col, 10))
+data_lp <- data_lp[!is.na(data_lp$LP), ]
+data_lp
+
+df_dayMean_lp <- data_lp %>% dplyr::group_by(date) %>% summarise(lp = na.omit(mean(LP)), date = date)
+df_dayMean_lp <- unique(df_dayMean_lp)
+df_dayMean_lp
+
+
+df_tmp_lp <- merge(x = df_dayMean_lp, y = df_dayMean_tmp, by = "date", all.y = T) 
+df_tmp_lp$lp[is.na(df_tmp_lp$lp)] <- 0 # ak niekde chyba hodnota LP, LP = 0
+df_tmp_lp
+
+
+# linearna regresia
+# Hypoteza: Rocna teplota rastie a s nou rastie aj mnozstvo zrazok
+normalize <- function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
 }
-plot(som1, type = "counts", palette.name = colors, heatkey = TRUE)
-par(mfrow = c(1, 2))
-plot(som1, type = "mapping", pchs = 20, main = "Mapping Type SOM")
-plot(som1, type = "dist.neighbours", palette.name = terrain.colors)
+df_tmp_lp$lp <- normalize(df_tmp_lp$lp)
+df_tmp_lp$tmp <- normalize(df_tmp_lp$tmp)
+df_tmp_lp
 
-som1$unit.classif
+attach(df_tmp_lp)
+set.seed(123)
+
+tmp_lp_model <- lm(formula = lp ~ tmp, data = df_tmp_lp)
+summary(tmp_lp_model)
+
+pairs( ~ tmp + lp, panel = function(x,y){
+  points(x,y)
+  abline(lm(y~x), col = 2)})
+
+
 ```
