@@ -214,6 +214,7 @@ table_year_md_tmp
 ```{r}
 # SOM mapa -> roky a dni
 # vytvorenie matice
+set.seed(123)
 data_md_matrix <- as.matrix(table_year_md_tmp[,-1])
 dim(data_md_matrix)
 
@@ -370,15 +371,16 @@ df_dayMean_tmp$date_ts <- c(1:length(df_dayMean_tmp$date))
 df_dayMean_tmp
 
 # time series LM 
-lm_ts <- lm(formula = tmp ~ date, data = df_dayMean_tmp)
+lm_ts <- lm(formula = tmp ~ date_ts, data = df_dayMean_tmp)
 lm_ts$coefficients
 
 
 attach(df_dayMean_tmp)
 
-pairs( ~ tmp + date, panel = function(x,y){
+pairs( ~ date_ts + tmp, panel = function(x,y){
   points(x,y)
   abline(lm(y~x), col = 2)})
+
 ```
 
 
@@ -416,7 +418,7 @@ df_tmp_lp$tmp <- normalize(df_tmp_lp$tmp)
 df_tmp_lp
 
 attach(df_tmp_lp)
-set.seed(123)
+
 
 tmp_lp_model <- lm(formula = lp ~ tmp, data = df_tmp_lp)
 summary(tmp_lp_model)
@@ -424,6 +426,92 @@ summary(tmp_lp_model)
 pairs( ~ tmp + lp, panel = function(x,y){
   points(x,y)
   abline(lm(y~x), col = 2)})
+
+
+```
+
+```{r}
+
+add_group <- function(val) {
+  
+  if(val <= -20){
+    return(as.numeric(1))
+  }
+  if(val <= -10){
+    return(as.numeric(2))
+  }
+  if(val <= 0){
+    return(as.numeric(3))
+  }
+  if(val <= 10){
+    return(as.numeric(4))
+  }
+  if(val <= 20){
+    return(as.numeric(5))
+  }
+  if(val > 20){
+    return(as.numeric(6))
+  }
+  
+} 
+
+df_dayMean_tmp <- df_dayMean_tmp %>% dplyr::mutate(
+    group = map_dbl(tmp, add_group)
+)
+
+df_tmp_groups <- df_dayMean_tmp %>% group_by(year, group) %>% count()
+df_tmp_groups$group <- factor(df_tmp_groups$group)
+
+
+table_groups <- as.data.table(df_tmp_groups)
+
+
+# vytvorenie tabulky - pocty dni 
+table_groups_tmp <- dcast(table_groups, formula = year ~ group, value.var = 'n' , fill = 0)
+table_groups_tmp
+
+ggplot(data = df_tmp_groups %>% filter(group == 1), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#108dad") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,10, by = 1)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 1)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota pod -20°C"), y = "Počet dní", x = "Rok")
+  
+
+ggplot(data = df_tmp_groups %>% filter(group == 2), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#3cacc8") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,30, by = 2)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od -20°C až -10°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 3), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#4dc7ba") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,100, by = 5)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od -10°C až 0°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 4), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#67be55") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 10)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od 0°C až 10°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 5), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#bdb932") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 10)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od 10°C až 20°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 6), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#c64539") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 3)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota nad 20°C"), y = "Počet dní", x = "Rok")
 
 
 ```
