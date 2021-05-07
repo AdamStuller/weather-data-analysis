@@ -125,43 +125,46 @@ ggplot(mapping=aes( x=e_Vx, y=e_Vy)) +
 ```
 
 
-## Exploratory data analysis
 
-Firstly we look at data structure(str) which gives us information about number of observations(rows) and columns, column names and types and a head of the first observations. Secondly we look at the data summary - numbers of zeros, missing values, infinite numbers and unique values. 
+## EDA
+
+Dáta obsahujú 413336 pozorovaní nameraných od januára 1973 do decembra 2020. V dátach sa nachádza 15 atribútov, z toho X označuje poradové číslo merania, STATION je id stanice Sliač a DATE predstavuje presný dátum a čas merania. Ostatné atribúty predstavujú hodnoty meraní pre teplotu, vietor, rosný bod a mnohé ďalšie. V dátach sa nachádzajú prevažne numerické spojité atribúty.
 
 ```{r}
 
-str(mandatory_data)
-glimpse(mandatory_data)
+str(all_data)
+glimpse(all_data)
 
-status(mandatory_data) 
-summary(mandatory_data)
+status(all_data) 
+summary(all_data)
 
-describe(mandatory_data)
+describe(all_data)
 
-profiling_num(mandatory_data) %>% select(variable, mean, std_dev, range_98)
+profiling_num(all_data) %>% select(variable, mean, std_dev, range_98)
 
 ```
 
+
+Korelačná matica zobrazuje hodnoty korelácie medzi vybranými atribútmi - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24. Hodnota (výberového) korelačného koeficientu sa pohybuje v intervale od -1 do 1. Ak je toto číslo kladné, vzťah medzi danými dvoma atribútmi je priamy, teda s narastajúcimi hodnotami X narastajú aj hodnoty Y. Ak je číslo záporné, tak medzi X a Y je vzťah nepriamy, čiže s narastajúcimi (klesajúcimi) hodnotami X klesajú (rastú) hodnoty Y. Ak je číslo rovné 0 tak neexistuje lineárna závislosť medzi X a Y, môže však existovať nelineárna závislosť. A teda čím bližšia hodnota k |1|, tým silnejší je vzťah medzi X a Y.
+
+Najvyššia korelácia je medzi TMP a DEW (0.94), ide o kladnú koreláciu teda, čím vyššia je teplota tým vyššia je hodnota rosného bodu. Ďalej je dosť silná kladná korelácia aj medzi VIS a WND_SPEED.
+
+Naopak záporná korelácia je medzi TMP a SLP, SLP a LP24.
 
 
 ```{r}
 # korelacie vybranych numerickych atributov - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW
-mdata_select <- select(all_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24)
-mdata_cor <- cor(mdata_select, use = "na.or.complete")
+data_cor <- select(all_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24)
+cor <- cor(mdata_select, use = "na.or.complete")
 
-corrplot(mdata_cor, tl.col = "black", order = "AOE")
-corrplot(mdata_cor, method = "shade", shade.col = NA, tl.col = "black", addCoef.col = "black", order = "AOE")
-
-# Najvyššia korelácia je medzi TMP a DEW, slabá korelácia medzi TMP a VIS a medzi VIS a CIG. 
-# Veľmi slabú zápornú koreláciu má aj SLP so stĺpcami DEW a TMP. 
+corrplot.mixed(cor, lower="number", upper="circle", tl.pos = "lt", lower.col = "black",number.cex=0.75)
 
 ```
 
 
 
 ```{r}
-pairs(~TMP + SLP+DEW+VIS+WND_SPEED+CIG+WND_ANGLE+ SLP, data=mandatory_data)
+pairs(~TMP + SLP+DEW+VIS+WND_SPEED+CIG+WND_ANGLE+ SLP, data=all_data)
 ```
 
 
@@ -210,6 +213,9 @@ table_year_md_tmp
 
 ```
 
+Z grafu priemerných denných teplôt pre roky 1973 - 2020 vidíme, že priemerná teplota sa časom mierne zvyšuje.
+
+
 
 ```{r}
 # SOM mapa -> roky a dni
@@ -239,13 +245,6 @@ degrade.bleu <- function(n){
 
 plot(som_model,type="count",palette.name=degrade.bleu)
 
-dc <- dist(som_model$codes[[1]])
-
-cah <- hclust(dc,method="ward.D2",members=table(som_model$unit.classif))
-plot(cah,hang=-1,labels=F)
-
-groupes <- cutree(cah,k=3)
-print(groupes)
 ```
 
 
@@ -273,12 +272,18 @@ table_year_month_tmp <- dcast(table_monthMean_tmp, formula = year ~ month, value
 # table_year_month_tmp <- dcast(table_monthMean_tmp, formula = month ~ year, value.var = 'tmp' ) # riadky = dni, stlpce = roky
 table_year_month_tmp
 
+```
+
+
+Graf zobrazuje priemerné mesačné teploty pre jednotlivé roky 1973 - 2020. Opäť aj tu je vidieť, že teplota sa zvyšuje.
+
+
+```{r}
 # matica
 data_month_matrix <- as.matrix(table_year_month_tmp[,-1])
 dim(data_month_matrix)
 
 # HEATMAP
-library(RColorBrewer)
 heatmap(data_month_matrix, 
         labRow = sort(table_year_month_tmp$year), 
         scale = 'none', 
@@ -287,13 +292,25 @@ heatmap(data_month_matrix,
 
 
 h <- stats::hclust(dist(data_month_matrix), method = "ward.D")
-plot(h, labels = table_year_month_tmp$year, sub = "")
+plot(h, labels = table_year_month_tmp$year, sub = "", xlab = "Years") 
+
+```
+
+Na základe heatmapy tiež vidíme rozdelenie rokov pod2a teploty. Najteplejší bol 7.mesiac a to v rokoch, ktoré majú tmavšiu bordovú farbu. Naopak najchladnejší bol januá, v rokoch, ktoré majú tmavšiu modrú farbu.
 
 
+### Klastrovanie metódou SOM (Self-Organized Map)
 
+V prvom kroku zvolíme rozmer a tvar SOM mapy. Zvolili sme mapu s rozmermi 3x2 polí, Euklidovskú metódu výpočtu vzdialenosti a tvar šesťuholníka, ktorý má viac susedov. Číslovanie polí je od 1 vľavo dole smerom doprava, najvyššie číslo má pole mapy vpravo hore.
+
+Nastavenie ďalších parametrov súvisí s trénovaním SOM. Ak je parameter radius = 0 tak SOM je veľmi podobný K-Means algoritmu. Parameter radius by mal byť na začiatku cca 2/3 z rozmerov mapy - tu 3x2 = 6, čiže 4, postupne sa znižuje. Parameter rlen znamená koľkokrát sa dáta znovu načítajú a hodnotia v SOM. Tento parameter bol nastavený experimentálne sledovaním priebehu grafu “Changes”. Hodnoty v grafe by sa mali znižovať a nakoniec by už mali oscilovať okolo finálnej hodnoty. Vtedy už tento parameter netreba ďalej meniť.
+
+```{r}
 # SOM mapa -> roky a mesiace
+set.seed(123)
 som_grid <- kohonen::somgrid(xdim = 3, ydim = 2, topo = "hexagonal")
 
+set.seed(123)
 som_model <- kohonen::som(X = data_month_matrix, grid = som_grid,
               rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 4)
 
@@ -301,62 +318,77 @@ plot(som_model, type="changes")
 
 graphics::plot(som_model, type = "codes", shape = "straight")
 
-som_model$unit.classif # zadelenie mesiacov do tried
+som_model$unit.classif # zadelenie rokov do tried
 table(som_model$unit.classif) # pocty v triedach
 
 
-df <- data.frame(Year = c(1973:2020), Class = som_model$unit.classif)
-df
+df <- data.frame(year = c(1973:2020), class = som_model$unit.classif)
+df[order(df$class),]
 
-# 1.skupina - 1973,76,77,78,79,80,81,84,91,97,2004
-# 2.skupina - 89,90,92,99,2001,2002,2011,2016
-# 3.skupina - 74,75,83,88,94,95,98,2007
-# 4.skupina - 82,85,86,87,93,96,2005,2006
-# 5.skupina - 2000,2003,2009,2010,2012,2017
-# 6.skupina - 2008,2013,14,15,18,19,2020
+df_1 <- merge(x = df %>% filter(class == 1), y = df_monthMean_tmp, by = "year", all = F)
+df_1 <- unique(df_1) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_1 <- mean(df_1$mean_tmp)
 
-df_1 <- df_monthMean_tmp %>% filter(year %in% c(1973,1976,1977,1978,1979,1980,1981,1984,1991,1997,2004)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_1_mean <- mean(df_1$mean_tmp)
 
-df_2 <- df_monthMean_tmp %>% filter(year %in% c(1989,1990,1992,1999,2001,2002,2011,2016)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_2_mean <- mean(df_2$mean_tmp)
+df_2 <- merge(x = df %>% filter(class == 2), y = df_monthMean_tmp, by = "year", all = F)
+df_2 <- unique(df_2) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_2 <- mean(df_2$mean_tmp)
 
-df_3 <- df_monthMean_tmp %>% filter(year %in% c(1974,1975,1983,1988,1994,1995,1998,2007)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_3_mean <- mean(df_3$mean_tmp)
+df_3 <- merge(x = df %>% filter(class == 3), y = df_monthMean_tmp, by = "year", all = F)
+df_3 <- unique(df_3) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_3 <- mean(df_3$mean_tmp)
 
-df_4 <- df_monthMean_tmp %>% filter(year %in% c(1982,1985,1986,1987,1993,1996,2005,2006)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_4_mean <- mean(df_4$mean_tmp)
 
-df_5 <- df_monthMean_tmp %>% filter(year %in% c(2000,2003,2009,2010,2012,2017)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_5_mean <- mean(df_5$mean_tmp)
+df_4 <- merge(x = df %>% filter(class == 4), y = df_monthMean_tmp, by = "year", all = F)
+df_4 <- unique(df_4) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_4 <- mean(df_4$mean_tmp)
 
-df_6 <- df_monthMean_tmp %>% filter(year %in% c(2008,2013,2014,2015,2018,2019,2020)) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
-tmp_6_mean <- mean(df_6$mean_tmp)
 
-tmp_1_mean
-tmp_2_mean
-tmp_3_mean
-tmp_4_mean
-tmp_5_mean
-tmp_6_mean
+df_5 <- merge(x = df %>% filter(class == 5), y = df_monthMean_tmp, by = "year", all = F)
+df_5 <- unique(df_5) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_5 <- mean(df_5$mean_tmp)
+
+df_6 <- merge(x = df %>% filter(class == 6), y = df_monthMean_tmp, by = "year", all = F)
+df_6 <- unique(df_6) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_6 <- mean(df_6$mean_tmp)
+
+tmp_class <- data.frame(class = c(1:6), mean_tmp = c(mean_tmp_1,mean_tmp_2,mean_tmp_3,mean_tmp_4,mean_tmp_5,mean_tmp_6))
+tmp_class
+
+ggplot(tmp_class, aes(x = class, y = mean_tmp, fill = as.factor(class))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Priemerné teploty v triedach", x = "Trieda", y = "Teplota") +
+  theme(legend.position="none") +
+  geom_text(mapping = aes(label = round(mean_tmp,2)), vjust = -0.5, size = 4) +
+  scale_y_continuous(breaks = seq(0, 12, by = 1)) +
+  scale_x_continuous(breaks = seq(1,6, by = 1)) 
+  
+
+ggplot(df, aes(x = year, y = class)) +
+  geom_point(aes(color = as.factor(class)), size = 2) +
+  scale_y_continuous(breaks = seq(1,6, by = 1)) +
+  labs(title = "Roky v triedach", x = "Rok", y = "Trieda") +
+  scale_x_continuous(breaks = seq(1973, 2020, by = 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position="none")
 
 ```
 
-
+Na základe klastrovania pomocou SOM mapy sme zadelili jednotlivé roky do 6 tried podľa ich priemerných mesačných teplôt. Ako vidieť z grafov 6. trieda obsahuje väčšinu súčasných rokov nad 2010 a priemerná teplota v tejto triede je najvyššia, čo svedčí o tom, že v posledných rokoch sa teplota zvyšuje. Naopak tried č.1 obsahuje väčšinu 70-tych rokov a priemerná teplota rokov patriacich do tejto triedy je najnižšia. 
 
 
 
 
 ```{r}
 # Predikcia na 1 rok
-
+set.seed(123)
 df_monthMean_tmp <- df_monthMean_tmp %>% dplyr::select(year,month,tmp)
 df_monthMean_tmp <- unique(df_monthMean_tmp)
 
 data_ts <- ts(df_monthMean_tmp$tmp, start = c(1973, 1), end = c(2020, 12), frequency = 12)
 data_ts
 
-arima_model <- auto.arima(data_ts)
+arima_model <- forecast::auto.arima(data_ts)
 summary(arima_model)
 fore_arima = forecast::forecast(arima_model, h = 12)
 df_arima = as.data.frame(fore_arima)
@@ -407,6 +439,13 @@ df_tmp_lp <- merge(x = df_dayMean_lp, y = df_dayMean_tmp, by = "date", all.y = T
 df_tmp_lp$lp[is.na(df_tmp_lp$lp)] <- 0 # ak niekde chyba hodnota LP, LP = 0
 df_tmp_lp
 
+ggplot(df_tmp_lp, aes(x = as.Date(date), y = lp)) +
+  geom_line( color="#882545") + 
+  geom_smooth(color = 4) +
+  labs(title = "Priemerné mesačné teploty: 1973 - 2020", x = "dátum", y = "teplota") +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,1, by = 0.05))
 
 # linearna regresia
 # Hypoteza: Rocna teplota rastie a s nou rastie aj mnozstvo zrazok
@@ -429,6 +468,7 @@ pairs( ~ tmp + lp, panel = function(x,y){
 
 
 ```
+
 
 ```{r}
 
@@ -461,7 +501,6 @@ df_dayMean_tmp <- df_dayMean_tmp %>% dplyr::mutate(
 
 df_tmp_groups <- df_dayMean_tmp %>% group_by(year, group) %>% count()
 df_tmp_groups$group <- factor(df_tmp_groups$group)
-
 
 table_groups <- as.data.table(df_tmp_groups)
 
@@ -515,3 +554,20 @@ ggplot(data = df_tmp_groups %>% filter(group == 6), aes(x=year, y=n, fill=group)
 
 
 ```
+
+V grafov je priemerná denná teplota rozdelená do 6 skupín nasledovne:
+
+- pod -20°C
+- od -20°C do -10°C
+- od -10°C do 0°C
+- od 0°C do 10°C
+- od 10°C do 20°C
+- nad 20°C
+
+Pre každú skupinu a každý rok sú spočítané počety dní kedy bola teplota v danom intervale.
+
+Z grafu pre poslednú skupinu (nad 20°C) je vidieť, že počet dní kedy teplota presahuje 20°C stúpa s pribúdajúcimi rokmi. Teda počet teplých dní sa časom zvyšuje.
+
+
+
+
