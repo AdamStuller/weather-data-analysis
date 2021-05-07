@@ -9,59 +9,95 @@ output:
 source('setup.R')
 ```
 
-Atribút temperature reprezentuje teplotu vzduchu meranú v °C.
+## AIR-TEMPERATURE-OBSERVATION air temperature
+
+The temperature of the air.
+
+MIN: -0932 MAX: +0618 UNITS: Degrees Celsius
+
+SCALING FACTOR: 10
+
+DOM: A general domain comprised of the numeric characters (0-9), a plus sign (+), and a minus sign (-).
++9999 = Missing.
+
+According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
+
+Second information does not concern us and is thus removed. Both values are separated and only temperature is kept. Temperature is then converted to numeric (if not 9999) and divided by 10.  
+
+Teplota vzduchu meraná v °C.
+
+
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
+
 
 ```{r TMP, warning = FALSE}
-load('.Rdata')
+summary(all_data$TMP)
+all_data['TMP'] %>% profiling_num()
 
-summary(mandatory_data$TMP)
-mandatory_data['TMP'] %>% profiling_num()
-
-getmode(na.omit(mandatory_data$TMP)) # modus
-
-var(mandatory_data$TMP, na.rm = T) # rozptyl
-max(mandatory_data$TMP, na.rm = T) - min(mandatory_data$TMP, na.rm = T) # variacne rozpatie
-
-# Interquartile range and outliers
-Q1 <- quantile(mandatory_data$TMP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
-Q3 <- quantile(mandatory_data$TMP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
-IQR <- IQR(mandatory_data$TMP, na.rm = T) # interquartile range
-IQR_dev <- IQR/2
-
-# odlahle hodnoty
-length(which(mandatory_data$TMP < (Q1 - 1.5*IQR)))
-length(which(mandatory_data$TMP > (Q3 + 1.5*IQR)))
-
-# extremne hodnoty
-length(which(mandatory_data$TMP < (Q1 - 3*IQR)))
-length(which(mandatory_data$TMP > (Q3 + 3*IQR)))
+getmode(na.omit(all_data$TMP)) # modus
 
 ```
 
-Hodnota výberového mediánu je 10 a hodnota výberového priemeru 9.9. Rozdiel hodnôt je iba 0.1 teda výberový priemer môžme považovať za dobrý odhad strednej hodnoty. 
+
+### Centralna poloha dat
+
+Hodnota výberového mediánu je 9.2 a hodnota výberového priemeru 9.482. Rozdiel hodnôt je iba 0.3 teda výberový priemer môžme považovať za dobrý odhad strednej hodnoty. 
 
 Modus - najčastejšia hodnota teploty je 1.
 
-Výberový rozptyl je 91.749, čo je stredná kvadratická odchýlka hodnôt od výberového priemeru. Vyjadruje ako veľmi sú hodnoty rozptýlené od priemeru. Čím je väčší, tým viac sa hodnoty odchyľujú od priemeru.
 
-Výberová smerodajná odchýlka je 9.578574. Vyjadruje kvadratický priemer odchýlok jednotlivých hodnôt teploty od ich aritmetického priemeru. Jej hodnota môže byť vyššia v porovnaní s medzikvartilovou odchýlkou pretože v dátach sa nachádza niekoľko odľahlých hodnôt.
+```{r}
+var(all_data$TMP, na.rm = T) # rozptyl
+max(all_data$TMP, na.rm = T) - min(all_data$TMP, na.rm = T) # variacne rozpatie
 
-Medzikvartilová odchýlka (IQR/2) je 7.05, čo je v porovnaní so smerodajnou odchýlkou o niečo menej.
+# Interquartile range and outliers
+Q1 <- quantile(all_data$TMP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(all_data$TMP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+IQR <- IQR(all_data$TMP, na.rm = T) # interquartile range
+IQR_dev <- IQR/2
 
-Variačné rozpätie je 62.3. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou teploty. Jeho veľkosť závisí iba od krajných hodnôt, pričom v tomto prípade spodná hranica patrí medzi odľahlé hodnoty. Preto variačné rozpätie mimo odľahlých hodnôt bude o niečo menšie.
+# odlahle hodnoty
+length(which(all_data$TMP < (Q1 - 1.5*IQR)))
+length(which(all_data$TMP > (Q3 + 1.5*IQR)))
 
-Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 0.9669 (97%), čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
+# extremne hodnoty
+length(which(all_data$TMP < (Q1 - 3*IQR)))
+length(which(all_data$TMP > (Q3 + 3*IQR)))
+
+```
 
 
-**Boxplot**
+### Variabilita
 
-Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Krabica zobrazuje rozsah v ktorom sa nachádza 50% hodnôt - medzikvartilové rozpätie, čo je hodnota 3.kvartilu - hodnota 1. kvartilu. Hodnota 3.kvartilu je 17 a hodnota 1. kvartilu 2.9, teda medzikvartilové rozpätie (IQR) je 17 - 2.9 = 14.1. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou. Kedže sa nachádza v strede, dáta nie sú zošikmené ale sú rovnomerne rozptýlené okolo strednej hodnoty.
+Výberový rozptyl je 91.607, čo je stredná kvadratická odchýlka hodnôt od výberového priemeru. Vyjadruje ako veľmi sú hodnoty rozptýlené od priemeru. Čím je väčší, tým viac sa hodnoty odchyľujú od priemeru.
+
+Výberová smerodajná odchýlka je 9.5712. Vyjadruje kvadratický priemer odchýlok jednotlivých hodnôt teploty od ich aritmetického priemeru. Jej hodnota môže byť vyššia v porovnaní s medzikvartilovou odchýlkou pretože v dátach sa nachádza niekoľko odľahlých hodnôt.
+
+Medzikvartilová odchýlka (IQR/2) je 7.25, čo je v porovnaní so smerodajnou odchýlkou o niečo menej.
+
+Variačné rozpätie je 66.7. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou teploty. Jeho veľkosť závisí iba od krajných hodnôt, pričom v tomto prípade spodná hranica patrí medzi odľahlé hodnoty. Preto variačné rozpätie mimo odľahlých hodnôt bude o niečo menšie.
+
+Variačný koeficient je mierou relatívnej variability definovaný ako podiel smerodajnej odchýlky a aritmetického priemeru. Variačný koeficient teploty je 1.01 (101%), čo je dosť veľa a teda dáta sú vysoko variabilné. Ďalej porovnáme variačný koeficient teploty s variačnými koeficientmi iných atribútov, aby sme porovnali ich variabilitu.
+
+
+### Asymetria
+
+Šikmosť vyjadruje zošikmenie súboru, teda či prevažujú vysoké alebo nízke hodnoty. Hodnota šikmosti je takmer nulová (-0.00843519) teda hodnoty nie sú zošikmené a ide o symetrické rozdelenie. 
+
+Špicatosť vyjadruje rozloženie dát v súbore alebo sústredenie početnosti okolo strednej hodnoty. Hodnota špicatosti je 2.591749, je menšia ako 3 teda hodnoty majú trocha plochšie rozdelenie ako je normálne. To znamená, že v súbore máme viac hodnôt, ktoré sa nachádzajú ďalej od priemeru, resp. veľa nízkych aj vysokých hodnôt, ktoré nie sú blízko priemeru a vrchol rozdelenia početností hodnôt nie je až taký špicatý ako pri normálnom rozdelení.
+
+
+### Boxplot
+
+Graf rozdeľuje namerané hodnoty teploty na niekoľko častí. Krabica zobrazuje rozsah v ktorom sa nachádza 50% hodnôt - medzikvartilové rozpätie, čo je hodnota 3.kvartilu - hodnota 1. kvartilu. Hodnota 3.kvartilu je 16.5 a hodnota 1. kvartilu 2, teda medzikvartilové rozpätie (IQR) je 16.5 - 2 = 14.5. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou. Kedže sa nachádza v strede, dáta nie sú zošikmené ale sú rovnomerne rozptýlené okolo strednej hodnoty.
 
 Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
-Maximálna hodnota (38.15) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
-Minimálna hodnota (-18.25) je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie).
+Maximálna hodnota (38.25) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
+Minimálna hodnota (-19.75) je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie).
 
-Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt pod minimálnou hodnotou je 154, nad maximálnou sa nenachádzajú žiadne odľahlé hodnoty. 
+Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt pod minimálnou hodnotou je 403, nad maximálnou sa nenachádzajú žiadne odľahlé hodnoty. 
 
 Nakoniec pre odľahlé hodnoty overíme či patria medzi extrémne.
 Horná hranica extrémych hodnôt je vypočítaná ako 3.kvartil + 3 * IQR.
@@ -69,21 +105,17 @@ Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
 Takéto hodnoty sa v našich dátach nevyskytujú.
 
 
-Šikmosť vyjadruje zošikmenie súboru, teda či prevažujú vysoké alebo nízke hodnoty. Hodnota šikmosti je takmer nulová (0.0008356282) teda hodnoty nie sú zošikmené a ide o symetrické rozdelenie. 
-
-Špicatosť vyjadruje rozloženie dát v súbore alebo sústredenie početnosti okolo strednej hodnoty. Hodnota špicatosti je 2.607313, je menšia ako 3 teda hodnoty majú trocha plochšie rozdelenie ako je normálne. To znamená, že v súbore máme viac hodnôt, ktoré sa nachádzajú ďalej od priemeru, resp. veľa nízkych aj vysokých hodnôt, ktoré nie sú blízko priemeru a vrchol rozdelenia početností hodnôt nie je až taký špicatý ako pri normálnom rozdelení.
-
 ```{r boxplot, warning = FALSE}
 
 # boxplot
-boxplot(mandatory_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
+boxplot(all_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
 
 ```
 
-Z nasledujúcich boxplotov pre jednotlivé roky vidíme, že v roku 2017 boli namerané aj veľmi nízke hodnoty teploty. Naopak v roku 2014 má krabica boxplotu rozptyl najmenší, teda v tomto roku boli hodnoty dosť konzistentné oproti iným rokom.
 
-```{r, warning = FALSE}
-df <- mandatory_data %>% 
+
+```{r 1973 - 1979, warning = FALSE}
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -91,106 +123,129 @@ df <- mandatory_data %>%
   ) %>%
   dplyr::select(all_of(c('year', 'TMP')))
 
-ggplot(data = df, aes(TMP, factor(year), colour = year)) +
+ggplot(data = df %>% filter(year < 1980), aes(TMP, factor(year), colour = year)) +
   geom_boxplot() +
-  labs(title = paste("Boxploty teploty pre roky 2010 - 2020"), x = "temperature", y = "year", fill = "year") +
+  labs(title = paste("Boxploty teploty pre roky 1973 - 1979"), x = "Teplota", y = "Rok", fill = "year") +
   scale_x_continuous(breaks = seq(-40, 40, by = 5))
   
 ```
 
 
+```{r 1980 - 1989, warning = FALSE}
+ggplot(data = df %>% filter(year >= 1980 & year < 1990), aes(TMP, factor(year), colour = year)) +
+  geom_boxplot() +
+  labs(title = paste("Boxploty teploty pre roky 1980 - 1989"), x = "Teplota", y = "Rok", fill = "year") +
+  scale_x_continuous(breaks = seq(-40, 40, by = 5))
+```
+
+Pri porovnaní 70-tych a 80-tych rokov vidno mierne zvýšenie teploty, medián pre 80-te roky je posunutý bližie k 10°C, pričom v 70-tych rokoch je približne okolo 7.5°C.
+
+
+```{r 1990 - 1999, warning = FALSE}
+ggplot(data = df %>% filter(year >= 1990 & year < 2000), aes(TMP, factor(year), colour = year)) +
+  geom_boxplot() +
+  labs(title = paste("Boxploty teploty pre roky 1990 - 1999"), x = "Teplota", y = "Rok", fill = "year") +
+  scale_x_continuous(breaks = seq(-40, 40, by = 5))
+```
+
+
+```{r 2000 - 2009, warning = FALSE}
+ggplot(data = df %>% filter(year >= 2000 & year < 2010), aes(TMP, factor(year), colour = year)) +
+  geom_boxplot() +
+  labs(title = paste("Boxploty teploty pre roky 2000 - 2009"), x = "Teplota", y = "Rok", fill = "year") +
+  scale_x_continuous(breaks = seq(-40, 40, by = 5))
+```
+
+Z nasledujúcich boxplotov pre jednotlivé roky vidíme, že v roku 2017 boli namerané aj veľmi nízke hodnoty teploty. Naopak v roku 2014 má krabica boxplotu rozptyl najmenší, teda v tomto roku boli hodnoty dosť konzistentné oproti iným rokom. V porovnaní so 70-tymi a 80-tymi rokmi sa krabica boxplotov posunula približne o 2-3°C k vyšším teplotám, z čoho by sme tiež mohli povedať, že s časom sa teplota zvyšuje.
+
+```{r 2010 - 2020, warning = FALSE}
+ggplot(data = df %>% filter(year >= 2010), aes(TMP, factor(year), colour = year)) +
+  geom_boxplot() +
+  labs(title = paste("Boxploty teploty pre roky 2010 - 2020"), x = "Teplota", y = "Rok", fill = "year") +
+  scale_x_continuous(breaks = seq(-40, 40, by = 5))
+```
+
+
 Grafy priemerných mesačných teplôt pre rok 2010 a 2020. Vidíme mierne zvýšenie teploty koncom leta a počas jesenných mesiacov. Taktiež priemerná teplota v decembri je v roku 2020 nad 0.
+
 
 ```{r, warning = FALSE}
 
-mandatory_date_split <- mutate(mandatory_data, day = mday(DATE), month = month(DATE), year = year(DATE), hour = hour(DATE), min = minute(DATE))
+all_data_split_date <- mutate(all_data, day = mday(DATE), month = month(DATE), year = year(DATE), hour = hour(DATE), min = minute(DATE))
 
-# Select each 6 hours
-# data_6_hours <- mandatory_date_split %>% filter(hour %in% c(0,6,12,18))
-
-# # Select January 2010
-# jan_2010 <- filter(data_6_hours, month == 1, year == 2010)
-# 
-# ggplot(data = jan_2010) + 
-#   geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
-#   geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
-#   labs(title = "Temperature 2010", y = "TMP") 
-# 
-# # Select January 2020
-# jan_2020 <- filter(data_6_hours, month == 1, year == 2020)
-# 
-# ggplot(data = jan_2020) + 
-#   geom_line(aes(DATE, TMP), size = 0.8, col = 2) +
-#   geom_point(mapping = aes(x = DATE, y = TMP), size = 1.3) +
-#   labs(title = "Temperature 2020", y = "TMP") 
- 
-
-# Mean TMP 2010
-mean_tmp_2010 <- filter(mandatory_date_split, year == 2010) %>% group_by(month) %>% summarise(mean = mean(TMP))
+all_data_split_date <- all_data_split_date[!is.na(all_data_split_date$TMP), ]
+all_data_split_date
 
 months <- c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
 
-ggplot(mean_tmp_2010, aes(x = factor(months,months), y = mean)) +
+# Mean TMP 1973
+mean_tmp_1973 <- filter(all_data_split_date, year == 1973) %>% group_by(month) %>% summarise(mean = mean(TMP))
+
+ggplot(mean_tmp_1973, aes(x = factor(months,months), y = mean)) +
   geom_col(mapping = aes(fill = factor(months,months))) +
   geom_text(mapping = aes(label = round(mean,2)), vjust = -0.5) +
   geom_line(mapping = aes(x = month, y = mean), size = 0.8) +
-  labs(title = paste("Mean monthly temperature in 2010"), x = "Month", y = "Mean temperature",
+  labs(title = paste("Priemerná mesačná teplota v roku 1973"), x = "Mesiac", y = "Teplota",
        fill = "Months") +
-  scale_y_continuous(breaks = seq(-10, 30, by = 2)) 
-  
+  scale_y_continuous(breaks = seq(-10, 30, by = 2))
+
 
 # Mean TMP 2020
-mean_tmp_2020 <- filter(mandatory_date_split, year == 2020) %>% group_by(month) %>% summarise(mean = mean(TMP))
+mean_tmp_2020 <- filter(all_data_split_date, year == 2020) %>% group_by(month) %>% summarise(mean = mean(TMP))
 
 ggplot(mean_tmp_2020, aes(x = factor(months,months), y = mean)) +
   geom_col(mapping = aes(fill = factor(months,months))) +
   geom_text(mapping = aes(label = round(mean,2)), vjust = -0.5) +
   geom_line(mapping = aes(x = month, y = mean), size = 0.8) +
-  labs(title = paste("Mean monthly temperature in 2020"), x = "Month", y = "Mean temperature",
+  labs(title = paste("Priemerná mesačná teplota v roku 2020"), x = "Mesiac", y = "Teplota",
        fill = "Months") +
   scale_y_continuous(breaks = seq(-10, 30, by = 2)) 
-  
+
 ```
 
+Porovnanie priemerných mesačných teplôt v roku 1973 a 2020. Z grafov vidieť, že sa zvýšila priemerná teplota v zimných mesiacoch nad 0°C (okrem januára). Celkovo sa priemerné teploty zvýšili približne o 1-2°C.
 
-Graf priemerných ročných teplôt pre roky 2010 - 2020. Vidíme, že najnižšia priemerná teplota bola v roku 2017 a najvyššia v roku 2018. Celkovo môžme vidieť mierne zvýšenie priemerných teplôt v porovnaní s rokmi 2010 a 2011. 
+
 
 ```{r, warning = FALSE}
 
 # Mean TMP by year
-mean_yr_tmp <- mandatory_date_split %>% group_by(year) %>% summarise(mean = mean(na.omit(TMP)))
+mean_yr_tmp <- all_data_split_date %>% group_by(year) %>% summarise(mean = mean(na.omit(TMP)))
 
 ggplot(mean_yr_tmp, aes(x = year, y = mean)) +
   geom_col(mapping = aes(fill = factor(year,year))) +
-  geom_text(mapping = aes(label = round(mean,2)), vjust = 1.8) +
-  geom_line(mapping = aes(x = year, y = mean), size = 0.8) +
-  labs(title = paste("Mean annual temperature in 2010 - 2020"), x = "Year", y = "Mean temperature",
+  geom_text(mapping = aes(label = round(mean,2)), vjust = 1.8, size = 2) +
+  labs(title = paste("Priemerná ročná teplota pre roky 1973 - 2020"), x = "Rok", y = "Teplota",
        fill = "Years")  +
-  scale_y_continuous(breaks = seq(0, 30, by = 2)) +
-  scale_x_continuous(breaks = seq(2010, 2020, by = 1))
+  scale_y_continuous(breaks = seq(0, 20, by = 1)) +
+  scale_x_continuous(breaks = seq(1973, 2020, by = 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position="none")
 
 ```
 
+Graf priemerných ročných teplôt pre roky 1973 - 2020. Vidíme, že najnižšia priemerná teplota bola v roku 1980 a najvyššia v roku 2014. Celkovo môžme vidieť mierne zvýšenie priemerných teplôt v rokoch 2010 - 2020 v porovnaní so 70.-tymi rokmi.
 
 
-**Histogram**
+### Histogram
 
 Na histograme vidíme početnosti jednotlivých hodnôt teploty. Najpočetnejšie sú hodnoty medzi 0 - 20°C. Rozdelenie dát sa podobá normálnemu rozdeleniu. Hodnoty sú symetrické okolo mediánu.
 
 ```{r histogram, warning = FALSE}
 
 # histogram
-ggplot(mandatory_data, aes(x = TMP)) + 
+ggplot(all_data, aes(x = TMP)) + 
   geom_histogram(bins = 40, binwidth = 2, fill = 2, color = "#e9ecef") +
-  labs(title = paste("Temperature histogram")) +
-  xlab("TMP") +
-  ylab("Frequency") +
+  labs(title = paste("Histogram teploty")) +
+  xlab("Teplota") +
+  ylab("Počet") +
   scale_x_continuous(breaks = seq(-40, 40, by = 5)) +
-  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
+  scale_y_continuous(breaks = seq(0, 40000, by = 2000))
   
 ```
 
-**Graf hustoty**
+
+### Graf hustoty
 
 Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara). Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlnený oproti normálnemu rozdeleniu. Modrá reprušovaná čiare predstavuje priemernú teplotu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia. Z grafu vidno aj vrchol - najčastejšiu hodnotu 1 a niekoľko menších vrcholov v okolí hodnoty 8 a 15..
 
@@ -198,45 +253,46 @@ Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho
 
 # denisty plot 
 # data z normalneho rozdelenia
-data_norm <- data.frame(dens = c(rnorm(length(na.omit(mandatory_data$TMP)), mean(mandatory_data$TMP, na.rm = T), sd(mandatory_data$TMP, na.rm = T))))
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(all_data$TMP)), mean(all_data$TMP, na.rm = T), sd(all_data$TMP, na.rm = T))))
 
 # porovnanie hodnot normalneho rozdelenia a TMP
-ggplot(mandatory_data, aes(x = TMP),color = 3) + 
+ggplot(all_data, aes(x = TMP),color = 3) + 
   geom_density(color = 2, size = 0.8) +
   geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
   geom_vline(aes(xintercept = mean(TMP, na.rm = T)),
             color = 4, linetype = "dashed", size = 1) +
   scale_x_continuous(breaks = seq(-40, 40, by = 5)) +
   labs(title = paste("Odhad hustoty teploty")) +
-  xlab("TMP") +
+  xlab("Teplota") +
   ylab("Hustota pravdepodobnosti")
 
 ```
 
-**Husľový graf**
+
+### Husľový graf
 
 Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že ide o normálne rozdelenie. Dáta sú najpočetnejšie v strede približne okolo hodnoty 1. a 3. kvartilu a smerom k vyšším, resp. nižším hodnotám sa ich hustota zmenšuje.
 
 ```{r violin, warning = FALSE}
 
 # violin plot
-df <- mandatory_data %>%
+df <- all_data %>%
   dplyr::select('TMP') %>%
   tidyr::gather(key = 'label', value = 'tmp')
 
 ggplot(data = df, aes(factor(label), tmp, fill = tmp)) +
   geom_violin(draw_quantiles = c(0.25, 0.5, 0.75), fill = 2) +
-  labs(title = paste("Husľový graf teploty"), y = "temperature", fill = "temperature") +
+  labs(title = paste("Husľový graf teploty"), y = "Teplota", fill = "temperature") +
   theme(axis.title.x = element_blank()) +
   theme(axis.text.x = element_blank()) +
   scale_y_continuous(breaks = seq(-40, 40, by = 5)) 
 
 ```
 
-Z nasledujúcich grafov vidíme rozdelenie hustoty pre jednotlivé roky. V roku 2017 boli dáta najmenej konzistentné a obsahujú viac nízkych hodnôt ako po iné roky.
+Z nasledujúcich grafov vidíme rozdelenie hustoty pre jednotlivé roky 1973 - 1979 a 2010 - 2020. V roku 2017 boli dáta najmenej konzistentné a obsahujú viac nízkych hodnôt ako po iné roky. Hodnoty kvartilov sú v porovnaní zo 70-tymi rokmi posunuté vyššie.
 
 ```{r, warning = FALSE}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -244,19 +300,30 @@ df <- mandatory_data %>%
   ) %>%
   dplyr::select(all_of(c('year', 'TMP')))
 
-ggplot(data = df, aes(factor(year), TMP, fill = year)) +
+
+ggplot(data = df %>% filter(year < 1980), aes(factor(year), TMP, fill = year)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75)) +
+  labs(title = paste("Husľový graf teploty pre roky 1973 - 1979"), x = "year", y = "temperature", fill = "year") +
+  scale_y_continuous(breaks = seq(-40, 40, by = 5)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position="none")
+
+
+ggplot(data = df %>% filter(year >= 2010), aes(factor(year), TMP, fill = year)) +
   geom_violin(draw_quantiles=c(0.25, 0.5, 0.75)) +
   labs(title = paste("Husľový graf teploty pre roky 2010 - 2020"), x = "year", y = "temperature", fill = "year") +
-  scale_y_continuous(breaks = seq(-40, 40, by = 5)) 
+  scale_y_continuous(breaks = seq(-40, 40, by = 5)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position="none")
 
 ```
 
-**Graf rozptýlenia**
+### Graf rozptýlenia
 
-Na osi x sú vynesené namerané hodnoty teploty a os y reprezentuje jednotlivé roky. Vidíme, že rozloženie dát je najhustejšie medzi hodnotami 0 - 20. Čím nižšia je hodnota teploty tým sa aj počet nameraných hodnôt znižuje, podobne aj pri vyokých teplotách. Ďalej vidíme, že v roku 2017 bola pravdepodobne veľmi chladná zima, pretože v tomto roku teplota dosahuje najnižšie hodnoty (mínus 20°C až mínus 25°C). Naopak v roku 2020 je len veľmi málo nízkych hodnôt (maximálne po mínus 10°C). V roku 2017 sú merané iba celočíselné hodnoty teploty.
+Na osi x sú vynesené namerané hodnoty teploty a os y reprezentuje jednotlivé roky. Vidíme, že rozloženie dát je najhustejšie medzi hodnotami 0 - 20. Čím nižšia je hodnota teploty tým sa aj počet nameraných hodnôt znižuje, podobne aj pri vyokých teplotách. Ďalej vidíme, že v roku 2017 bola pravdepodobne veľmi chladná zima, pretože v tomto roku teplota dosahuje najnižšie hodnoty (mínus 20°C až mínus 25°C). Naopak v roku 2020 je len veľmi málo nízkych hodnôt (maximálne po mínus 10°C). V roku 2017 sú merané iba celočíselné hodnoty teploty. V porovnaní so 70-tymi orkmi je väčšia hustota dát aj pri teplotách nad 20°C.
 
 ```{r, warning = FALSE}
-df <- mandatory_data %>% 
+df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
       lubridate::year() %>% 
@@ -264,14 +331,20 @@ df <- mandatory_data %>%
   ) %>%
   dplyr::select(all_of(c('year', 'TMP')))
 
-ggplot(data = df, aes( TMP,factor(year), colour=year)) +
+ggplot(data = df %>% filter(year < 1980), aes( TMP,factor(year), colour=year)) +
+  geom_jitter() +
+  labs(title = paste("Graf rozptýlenia teploty pre roky 1973 - 1979"), x = "temperature", y = "year", fill = "year") +
+  scale_x_continuous(breaks = seq(-40, 40, by = 5)) 
+
+ggplot(data = df %>% filter(year >= 2010), aes( TMP,factor(year), colour=year)) +
   geom_jitter() +
   labs(title = paste("Graf rozptýlenia teploty pre roky 2010 - 2020"), x = "temperature", y = "year", fill = "year") +
   scale_x_continuous(breaks = seq(-40, 40, by = 5)) 
 
 ``` 
 
-**Q-Q graf**
+
+### Q-Q graf
 
 Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je rozdelenie nameraných hodnôt teploty. Body ležia veľmi blízko priamky, odchyľujú sa len body v oblasti horných a dolných kvantilov, teda rozdelenie hodnôt teploty je podobné normálnemu rozdeleniu.
 
@@ -279,21 +352,21 @@ Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. E
 ```{r qq, warning = FALSE}
 
 # QQ plot
-ggplot(data = mandatory_data, aes(sample = TMP)) +
+ggplot(data = all_data, aes(sample = TMP)) +
   stat_qq() + 
   stat_qq_line() +
   labs(title = paste("Q-Q graf teploty"))
 
 ```
 
-**Graf polosum**
+### Graf polosum
 
-Z grafu polosum vidno, že hodnoty sú takmer symetrické okolo mediánu - hodnoty 10. Mierne sa odchyľujú len krajné hodnoty (veľmi nízke a veľmi vysoké).
+Z grafu polosum vidno, že hodnoty sú takmer symetrické okolo mediánu. Mierne sa odchyľujú len krajné hodnoty (veľmi nízke a veľmi vysoké).
 
 ```{r polosum, warning = FALSE}
 
 # polosum
-tmp <- mandatory_data$TMP
+tmp <- all_data$TMP
 tmp_asc <- sort(tmp, decreasing = FALSE)
 tmp_desc <- sort(tmp, decreasing = TRUE)
 
@@ -303,5 +376,19 @@ ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) +
   labs(title = "Graf polosum pre teplotu", x = "Teplota") +
   theme_bw()
 
+```
+
+
+### Kruhovy graf
+```{r}
+# n <- nrow(all_data)
+# lo <- (n * (n - 1) / 2)^(-1 / 2)
+# 
+# Vx <- lo * cos(pi * all_data$CIG)
+# Vy <- lo * sin(pi * all_data$CIG)
+# 
+# ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
+#   geom_point() + 
+#   coord_fixed()
 ```
 
