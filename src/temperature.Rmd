@@ -392,3 +392,123 @@ ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) +
 #   coord_fixed()
 ```
 
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, TMP) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  #dplyr::filter(year(date)>2018) %>%
+autoplot( TMP) +
+  labs(title = "Time graph of temperature",
+       y = "Temperature",
+       x = "Date"
+       )
+```
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+autoplot( tmp) +
+  labs(title = "Time graph of temperature",
+       y = "Temperature",
+       x = "Date"
+       )
+```
+
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, TMP) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(date)>2015) %>%
+  gg_season(TMP, labels = "both") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(year_month)>210) %>%
+  gg_subseries(tmp, period = "1 year") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(year_month)>2010) %>%
+  gg_lag(tmp,  period = "1 year", geom = "point") +
+  labs(x = "lag(Beer, k)")
+```
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>% 
+  ACF(tmp, lag_max = 9)
+```
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  dplyr::mutate(
+    MA = slider::slide_dbl(tmp, mean,
+                .before = 5, .after = 6, .complete = TRUE)
+  )
+
+
+#components(dcmp)
+```
+

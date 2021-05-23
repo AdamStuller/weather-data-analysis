@@ -86,6 +86,8 @@ View(all_data)
 Dufal som ze to bude jednoduche ale exponencialne rozdelenie aj normalne aj to nase mi dava uplne presne kruhy, takze tak bude asi nejaka chyba... pockame, kum to Michal urobi pre erko. 
 
 ```{r}
+
+
 n <- nrow(mandatory_data)
 lo <- (n * (n - 1) / 2)^(-1 / 2)
 
@@ -395,6 +397,33 @@ df_arima = as.data.frame(fore_arima)
 df_arima
 
 ```
+
+```{r}
+library(fpp3)
+
+
+
+tmpts <- data_temperature %>%
+  dplyr::mutate(
+    year_month = yearmonth(paste(year, month))
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) 
+
+
+tmpts %>%
+  model(
+    ets = ETS(box_cox(tmp, 0.3)),
+    arima = ARIMA(log(tmp)),
+    snaive = SNAIVE(tmp)
+  ) %>%
+  forecast(h = "2 years") %>% 
+  autoplot(filter(tmpts, year(year_month) > 2010), level = NULL)
+```
+
 
 ```{r}
 df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), date = date)

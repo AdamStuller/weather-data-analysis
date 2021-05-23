@@ -125,6 +125,23 @@ ggplot(all_data, aes(x = WND_SPEED)) +
 
 ```
 
+```{r}
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, WND_SPEED) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  #dplyr::filter(year(date)>2018) %>%
+autoplot( WND_SPEED) +
+  labs(title = "Ansett airlines economy class",
+       subtitle = "Melbourne-Sydney",
+       y = "Passengers ('000)")
+```
 
 ### Graf hustoty
 
