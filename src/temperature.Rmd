@@ -500,15 +500,161 @@ all_data %>%
   ) %>%
   dplyr::group_by(year_month) %>%
   dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as.data.frame %>%
   as_tsibble(
     index = year_month
     ) %>%
   dplyr::mutate(
     MA = slider::slide_dbl(tmp, mean,
-                .before = 5, .after = 6, .complete = TRUE)
-  )
+                .before = 5, .after = 6)
+  ) %>%
+  autoplot(tmp, colour = "gray") +
+  geom_line(aes(y = MA), colour = "#D55E00") +
+  labs(y = "Persons (thousands)",
+       title = "Total employment in US retail")
 
 
 #components(dcmp)
 ```
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as.data.frame %>%
+  as_tsibble(
+    index = year_month
+    ) -> tsdf
+  
+tsdf %>%
+  model(trend_model = TSLM(tmp ~ trend() + season())) -> season_m
 
+tsdf %>%
+  model(trend_model = TSLM(tmp ~ trend())) -> trend_m
+
+season_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) 
+
+trend_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) 
+
+report(season_m)
+
+
+augment(season_m) %>%
+  ggplot(aes(x = tmp, y = .fitted)) +
+  geom_point() +
+  labs(
+    y = "Fitted (predicted values)",
+    x = "Data (actual values)",
+    title = "Percent change in US consumption expenditure"
+  ) +
+  geom_abline(intercept = 0, slope = 1)
+
+```
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as.data.frame %>%
+  dplyr::mutate(
+    MA = slider::slide_dbl(tmp, mean,
+                .before = 5, .after = 6)
+  ) %>%
+  as_tsibble(
+    index = year_month
+    ) -> tsdf
+  
+tsdf %>%
+  model(trend_model = TSLM(MA ~ trend())) -> m
+
+tsdf %>%
+  model(trend_model = TSLM(MA ~ trend() + season())) -> s_m
+
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) 
+
+s_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) 
+
+report(m)
+```
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    )  %>%
+  tsibble::fill_gaps()-> tsdf
+  
+tsdf %>%
+  model(snaive = SNAIVE(tmp )) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(filter(tsdf, year(year_month) > 2), level = NULL) 
+
+report(m)
+```
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    )  %>%
+  tsibble::fill_gaps() -> tsdf
+  
+na_seadec(tsdf,algorithm = "interpolation", find_frequency=TRUE) %>%
+  as_tsibble(
+    index = year_month
+  ) %>%
+  model(STL(tmp )) -> m 
+
+m %>%
+  components() %>%
+  autoplot() + labs(x = "Observation")
+
+components(m) %>%
+  as_tsibble() %>%
+  autoplot(tmp, colour="gray") +
+  geom_line(aes(y=trend), colour = "#D55E00") +
+  geom_smooth(color = 4) +
+  labs(
+    y = "Tempeature",
+    title = "Trend in avg. monthly temperature"
+  )
+
+components(m) %>%
+  as_tsibble(
+    index = year_month
+  ) %>%
+  select(year_month, trend)-> componenst_tsibble
+
+componenst_tsibble %>%
+  model(
+    tsl = TSLM(trend)
+  ) %>%
+  forecast(h = "10 years") %>%
+  autoplot(componenst_tsibble) 
+
+```
