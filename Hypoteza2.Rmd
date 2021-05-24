@@ -1,0 +1,250 @@
+---
+title: "hypoteza2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Hypoteza 2.
+
+Druha hypoteza, ktoru chceme overit sa tika cisto zrazok. Chceme overiť či sa mení distribúcia zrážok. Hypotéza znie, že počet dník kedy prši sa zmenšuje ale objem zrážok na jeden deň rastie. Predpokladáme teda, že počet suchých dní bez dažda rastie. Na iných miestach sme sa už zrážkam podrbnejšie venovali a preto pojdeme priamo na klasifikovanie dni. 
+
+## Klasifikovanie dni podla množstva zrážok
+
+Jednodlive dni klasifikujeme do šiestich kategórií podľa sumy všetkých zrážok počas dňa. 
+
+| Kategoria            | Interval      |
+|----------------------|---------------|
+| 0 - Ziaden dazd      | <0>           |
+| 1 - Jemny dazd       | (0,10)        |
+| 2 - Stredny dazd     | <10, 35.5)    |
+| 3 - Skor velky dazd  | <35.5, 64.4)  |
+| 4 - Velky dazd       | <64.4, 124.4) |
+| 5 - Velmi velky dazd | 124.4...      |
+
+```{r}
+classify_rainy_day <- function (daily_rain) {
+  if(daily_rain == 0){
+    return (0)
+  }
+  else if( daily_rain < 10.0){
+    return (1)
+  }
+  else if( daily_rain < 35.5){
+    return (2)
+  }
+  else if( daily_rain < 64.4){
+    return (3)
+  }
+  else if( daily_rain < 124.4){
+    return (4)
+  }
+  else {
+    return (5)
+  }
+}
+```
+
+Tuto klasifikaciu použijeme na vytvorenie novej datovej mnoziny.
+
+```{r}
+lp_df %>%
+  dplyr::mutate(
+    day_class = map_dbl(LP, classify_rainy_day)
+  ) -> lp_dc_df
+
+lp_dc_df%>%
+  autoplot( day_class) +
+    labs(title = "Časový graf dní klasifikovaný podľa množstva zrážok",
+         y = "Množstvo zrážok v mm",
+         x = "Dátum"
+         )
+```
+
+### Vývoj početností tried v čase
+Vypočítame počty rôznych tried dní v mesiacoch a pozrieme si vývoj početností jednotlivých tried v čase. 
+
+```{r}
+lp_dc_df %>%
+  as.data.frame()%>%
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::group_by(year, day_class) %>%
+  dplyr::summarise(
+    n_day_class = n()
+  ) %>%
+  as.data.frame() -> class_n_df
+```
+
+
+# Suché dni
+
+Hned tu môžeme vidieť, že počet suchých dni prekvapivo vyzerá akoby klesal.
+
+```{r}
+class_n_df %>%
+  filter(day_class == 0) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of dry days in year",
+         y = "Number of dry days",
+         x = "year"
+         )
+```
+
+### Slabý dážď
+
+```{r}
+class_n_df %>%
+  filter(day_class == 1) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of light rain days in year",
+         y = "Number of light rain days",
+         x = "year"
+         )
+```
+### Stredný dážď
+
+Počet dní so stredným daždom prekvapivo rastie.
+
+```{r}
+class_n_df %>%
+  filter(day_class == 2) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of moderate rain days in year",
+         y = "Number of moderate rain days",
+         x = "year"
+         )
+```
+### Skôr silný dážď
+
+```{r}
+class_n_df %>%
+  filter(day_class == 3) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth()+
+    labs(title = "Number of rather heavy rain days in year",
+         y = "Number of rather heavy rain days",
+         x = "year"
+         )
+```
+Ostatné triedy sa neoplatilo ani zobrazovať, pretože ich prikladov bolo príliš málo. 
+
+## Overenie hypotézy
+
+Vyvorime tri stlpce. Jeden bude obsahovať všetky dni počty dní bez dažda v mesiaci. Ďalší počet všetkých dní kedy pršalo aspoň trochu. Posledný stĺpec bude obsahovať množstvo zražok v mesiaci pripadajúce na jeden deň - teda pomer množstvo zrážok lomeno počet dni kedy pršalo. 
+
+```{r}
+lp_dc_df %>%
+  as.data.frame()%>%
+  dplyr::mutate(
+    year = yearmonth(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(
+    num_dry_days = sum(ifelse(day_class ==0, 1, 0)),
+    num_rainy_days = sum(ifelse(day_class ==0, 0, 1)),
+    sum_rain = sum(LP)
+  ) %>%
+  mutate(
+    precipitation_ratio = num_rainy_days / sum_rain
+  ) %>%
+  as.data.frame() %>%
+  as_tsibble(
+    index = year
+  ) -> df
+```
+
+### Vývoj počtu daždových dní v mesiaci
+
+```{r}
+df %>% 
+  autoplot(num_rainy_days)
+```
+Vydime, že už na prvý pohľad vyzerá, že množstvo daždvých dní rastie a nie klesá.
+
+```{r}
+df %>%
+  model(trend_model = TSLM(num_rainy_days ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df)  
+```
+
+Po použití lineárnej regresie vidíme, že pri predikcí na 10 rokov dopredu je vzniknutá priamka rastúca celkom výrazne a pri pohlade na opis modelu vidíme, že je to aj štatisticky signifikantne. Vyvodzujeme teda preto, že z našich dát vyplíva, že počet dní kedy prśí rastie namiesto toho aby klesal. 
+
+```{r}
+report(m)
+```
+
+### Vývoj počtu suchých dní v mesiaci
+
+Postupujeme rovnako ako v prvom príade. 
+
+```{r}
+df %>% 
+  autoplot(num_dry_days)
+```
+
+Vidíme, že tento graf vyzerá skôr klesajúco.
+
+```{r}
+df %>%
+  model(trend_model = TSLM(num_dry_days ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df) 
+```
+
+Lineárna regresia nám to iba potvrdzuje a model hovorí, že je to signifikantné a hodnota t je záporna.(-4.115).  
+
+```{r}
+report(m)
+```
+
+### Vývoj počtu daždových dní v mesiaci
+
+POzrieme sa aj na to ako sa vyvýja množstvo zrážok pripadajúce na jeden deň v mesiaci. 
+
+```{r}
+df %>% 
+  autoplot(precipitation_ratio)
+```
+
+```{r}
+df %>%
+  model(trend_model = TSLM(precipitation_ratio ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df) 
+```
+
+```{r}
+report(m)
+```
+
+Vidíme teda, že tento pomer sa z dlhodobého hladiska štatisticky významne nemení. 
+
+## Zhodnotenie
+
+Overovali sme hypotézu, že distribúcia zráźok sa mení. Zistili sme však, že sa to nedeje ako sme si najprv mysleli. Z našich dát vyplíva, že mnozstvo zrážok rastie, rastie aj množstvo dní kedy prší. Naopak klesá počet suchých dní kedy neprší vôbec. množstvo zrážok pripadajúcich na jeden deň v mesiaci sa ale nemení - zrážok je celkovo viac. 
