@@ -1,6 +1,7 @@
 ---
 title: "Wind angle"
-output: html_document
+author: "Denisa Mensatorisova"
+output: pdf_document
 ---
 
 ```{r, include = FALSE}
@@ -38,7 +39,7 @@ angle_frequency[order(angle_frequency$Freq, decreasing = T),]
 getmode(na.omit(all_data$WND_ANGLE)) # modus
 ```
 
-### Centralna poloha dat
+### Centrálna poloha dát
 
 Hodnota výberového mediánu je 210 a hodnota výberového priemeru 191.2. Keďže stredná hodnota (medián) je vyššia ako priemer, hodnotu priemeru mohli ovplyvniť nejaké výrazne nižšie hodnoty. Teda stredná hodnota uhlu vetra je 210° a polovica hodnôt dosahuje hodnoty vyššie od mediánu a polovica hodnôt nižšie. 
 
@@ -93,7 +94,6 @@ Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou m
 
 ```{r boxplot, warning = FALSE}
 
-# boxplot
 boxplot(all_data$WND_ANGLE, col = "#4dc1db", ylab = "Uhol vetra", main = "Wind angle boxplot")
 
 ```
@@ -105,7 +105,6 @@ Už z histogramu vidíme, že rozdelenie hodnôt nie je normálne. Avšak probl�
 
 ```{r histogram, warning = FALSE}
 
-# histogram
 ggplot(all_data, aes(x = WND_ANGLE)) + 
   geom_histogram(bins = 15, fill = "#4dc1db", color = "#e9ecef") +
   labs(title = paste("Wind angle histogram")) +
@@ -113,7 +112,6 @@ ggplot(all_data, aes(x = WND_ANGLE)) +
   ylab("Počet") +
   scale_x_continuous(breaks = seq(0, 360, by = 20)) +
   scale_y_continuous(breaks = seq(0, 50000, by = 2000))
-
 
 ggplot(all_data, aes(x = WND_ANGLE)) + 
   geom_histogram(binwidth = 60, fill = "#4dc1db", color = "#e9ecef") +
@@ -156,7 +154,6 @@ Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričo
 
 ```{r violin, warning = FALSE}
 
-# violin plot
 df <- all_data %>%
   dplyr::select('WND_ANGLE') %>%
   tidyr::gather(key = 'label', value = 'angle')
@@ -177,7 +174,6 @@ Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. E
 
 ```{r qq, warning = FALSE}
 
-# QQ plot
 ggplot(data = all_data, aes(sample = WND_ANGLE)) +
   stat_qq() + 
   stat_qq_line() +
@@ -192,7 +188,6 @@ Z grafu vidno, že hodnoty nie sú symetrické.
 
 ```{r polosum, warning = FALSE}
 
-# polosum
 angle <- all_data$WND_ANGLE
 angle_asc <- sort(angle, decreasing = FALSE)
 angle_desc <- sort(angle, decreasing = TRUE)
@@ -204,4 +199,5 @@ ggplot(data.frame(angle_asc), aes(x = angle_asc, y = 0.5*(angle_asc + angle_desc
   theme_bw()
 
 ```
+
 

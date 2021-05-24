@@ -1,8 +1,7 @@
 ---
 title: "Visibility"
-output:
-  html_document:
-    df_print: paged
+author: "Denisa Mensatorisova"
+output: pdf_document
 ---
 
 ```{r, include = FALSE}
@@ -23,7 +22,6 @@ NOTE: Values greater than 160000 are entered as 160000
 
 Viditeľnosť predstavuje - horizontálnu vzdialenosť, po ktorú je objekt viditeľný meranú v metroch.
 
-
 ```{r load, warning = FALSE}
 all_data <- read.csv(file= "../data/all.csv")
 ```
@@ -36,7 +34,7 @@ all_data['VIS'] %>% profiling_num()
 getmode(na.omit(all_data$VIS)) # modus
 ```
 
-### Centralna poloha dat
+### Centrálna poloha dát
 
 Hodnota výberového mediánu je 10000 a hodnota výberového priemeru 12841 Keďže stredná hodnota (medián) je nižšia ako priemer, hodnotu priemeru mohli ovplyvniť vyššie hodnoty.
 
@@ -99,11 +97,9 @@ Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
 V dátach sa nachádza 3176 extrémne vysokých hodnôt, ktoré sú vyššie ako hodnota 3.kvartilu + 3 * IQR, teda vyššie ako 42000.
 
 ```{r boxplot, warning = FALSE}
-
-# boxplot
 boxplot(all_data$VIS, col = "#8ad166", ylab = "VIS", main = "Visibility boxplot")
-
 ```
+
 
 ### Histogram
 
@@ -111,7 +107,6 @@ Aj z histogramu vidíme, že rozdelenie hodnôt je vyšikmené doľava. Najpoče
 
 ```{r histogram, warning = FALSE}
 
-# histogram
 ggplot(all_data, aes(x = VIS)) + 
   geom_histogram(bins = 15, fill = "#8ad166", color = "#e9ecef") +
   labs(title = paste("Visibility histogram")) +
@@ -119,12 +114,12 @@ ggplot(all_data, aes(x = VIS)) +
   ylab("Počet") +
   scale_x_continuous(breaks = seq(0, 80000, by = 10000)) +
   scale_y_continuous(breaks = seq(0, 150000, by = 5000))
-
 ```
+
 
 ### Graf hustoty
 
-Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt viditeľnosti (červená čiara). Čiary nie sú rovnaké, teda nejde o normálne rozdelenie. Modrá prerušovaná čiara predstavuje priemernú hodnotu viditeľosti. V dátach sa nachádza niekoľko vrcholov, najvyšší je okolo hodnoty 10000. 
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt viditeľnosti (červená čiara). Čiary nie sú rovnaké, teda nejde o normálne rozdelenie. Modrá prerušovaná čiara predstavuje priemernú hodnotu viditeľosti. V dátach sa nachádza niekoľko vrcholov, najvyšší je okolo hodnoty 10000.  
 
 ```{r density plot, warning = FALSE}
 
@@ -152,7 +147,6 @@ Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričo
 
 ```{r violin, warning = FALSE}
 
-# violin plot
 df <- all_data %>%
   dplyr::select('VIS') %>%
   tidyr::gather(key = 'label', value = 'vis')
@@ -172,7 +166,6 @@ Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. E
 
 ```{r qq, warning = FALSE}
 
-# QQ plot
 ggplot(data = all_data, aes(sample = VIS)) +
   stat_qq() + 
   stat_qq_line() +
@@ -186,7 +179,6 @@ Podobne aj z grafu polosum vidno, že hodnoty nie sú symetrické.
 
 ```{r polosum, warning = FALSE}
 
-# polosum
 vis <- all_data$VIS
 vis_asc <- sort(vis, decreasing = FALSE)
 vis_desc <- sort(vis, decreasing = TRUE)
@@ -197,4 +189,23 @@ ggplot(data.frame(vis_asc), aes(x = vis_asc, y = 0.5*(vis_asc + vis_desc))) +
   labs(title = "Graf polosum pre viditeľnosť", x = "Viditeľnosť") +
   theme_bw()
 
+```
+
+
+### Časový graf viditeľnosti
+
+```{r}
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, VIS) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  autoplot(VIS) +
+  labs(title = "Time graph of visibility",
+       y = "VIS", x = "Date")
 ```

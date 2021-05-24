@@ -1,8 +1,7 @@
 ---
 title: "Wind speed"
-output:
-  html_document:
-    df_print: paged
+author: "Denisa Mensatorisova"
+output: pdf_document
 ---
 
 ```{r, include = FALSE}
@@ -36,7 +35,7 @@ getmode(na.omit(all_data$WND_SPEED)) # modus
 
 ```
 
-### Centralna poloha dat
+### Centrálna poloha dát
 
 Hodnota výberového mediánu je 1 a hodnota výberového priemeru 1.716. Keďže stredná hodnota (medián) je nižšia ako priemer, hodnotu priemeru mohli ovplyvniť výrazne vyššie hodnoty, prípadne extrémne vysoké hodnoty. Takže stredná hodnota rýchlosti vetra je 1 m/s.
 
@@ -62,7 +61,6 @@ length(which(all_data$WND_SPEED < (Q1 - 3*IQR)))
 length(which(all_data$WND_SPEED > (Q3 + 3*IQR)))
 
 ```
-
 
 ### Variabilita
  
@@ -102,7 +100,6 @@ V dátach sa nachádza 561 extrémne vysokých hodnôt, ktoré sú vyššie ako 
 
 ```{r boxplot, warning = FALSE}
 
-# boxplot
 boxplot(all_data$WND_SPEED, col = "#308dd9", ylab = "Rýchlosť vetra", main = "Wind speed boxplot")
 
 ```
@@ -114,7 +111,6 @@ Už z histogramu vidíme, že rozdelenie hodnôt je výrazne vyšikmené doľava
 
 ```{r histogram, warning = FALSE}
 
-# histogram
 ggplot(all_data, aes(x = WND_SPEED)) + 
   geom_histogram(bins = 15, fill = "#308dd9", color = "#e9ecef") +
   labs(title = paste("Wind speed histogram")) +
@@ -125,23 +121,6 @@ ggplot(all_data, aes(x = WND_SPEED)) +
 
 ```
 
-```{r}
-
-all_data %>% 
-  dplyr::mutate(
-    date = as_date(DATE)
-  ) %>%
-  dplyr::distinct(date, .keep_all=TRUE) %>%
-  dplyr::select(date, WND_SPEED) %>%
-  as_tsibble(
-    index = date
-  ) %>%
-  #dplyr::filter(year(date)>2018) %>%
-autoplot( WND_SPEED) +
-  labs(title = "Ansett airlines economy class",
-       subtitle = "Melbourne-Sydney",
-       y = "Passengers ('000)")
-```
 
 ### Graf hustoty
 
@@ -167,13 +146,13 @@ ggplot(all_data, aes(x = WND_SPEED), color = 3) +
 ```
 
 
+
 ### Husľový graf
 
 Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že nejde o normálne rozdelenie. Dáta sú striedavo rozdelené, najviac v intervale od 0 po 8 ale vyskytujú sa v nich aj vysoké hodnoty (dlhá čiara).
 
 ```{r violin, warning = FALSE}
 
-# violin plot
 df <- all_data %>%
   dplyr::select('WND_SPEED') %>%
   tidyr::gather(key = 'label', value = 'speed')
@@ -194,7 +173,6 @@ Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. E
 
 ```{r qq, warning = FALSE}
 
-# QQ plot
 ggplot(data = all_data, aes(sample = WND_SPEED)) +
   stat_qq() + 
   stat_qq_line() +
@@ -209,7 +187,6 @@ Z grafu vidíme, že hodnoty nie sú symetrické.
 
 ```{r polosum, warning = FALSE}
 
-# polosum
 speed <- all_data$WND_SPEED
 speed_asc <- sort(speed, decreasing = FALSE)
 speed_desc <- sort(speed, decreasing = TRUE)
@@ -220,4 +197,23 @@ ggplot(data.frame(speed_asc), aes(x = speed_asc, y = 0.5*(speed_asc + speed_desc
   labs(title = "Graf polosum pre rýchlosť vetra", x = "Rýchlosť vetra") +
   theme_bw()
 
+```
+
+
+### Časový graf rýchlosti vetra
+
+```{r}
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, WND_SPEED) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  autoplot(WND_SPEED) +
+  labs(title = "Time graph of wind speed",
+       y = "WND_SPEED", x = "Date")
 ```
