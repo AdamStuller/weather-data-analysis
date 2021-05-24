@@ -1,0 +1,559 @@
+---
+title: "LP"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Liquid precipitation
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP, LP24) %>%
+  separate(LP, c('lp_observation_period', 'lp_observation', NA, NA)) %>%
+  filter(lp_observation_period == 12) %>%
+  dplyr::mutate(lp_observation = map_dbl(lp_observation, process_col, 10)) %>%
+  dplyr::select(date, lp_observation) %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(LP12 = sum(lp_observation)) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  dplyr::filter(year(date)>0) %>%
+  tsibble::fill_gaps() -> df_lp12
+
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP, LP24) %>%
+  separate(LP, c('lp_observation_period', 'lp_observation', NA, NA)) %>% 
+  filter(lp_observation_period == "06") %>%
+  dplyr::mutate(lp_observation = map_dbl(lp_observation, process_col, 10)) %>%
+  dplyr::select(date, lp_observation) %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(LP6 = sum(lp_observation)) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  dplyr::filter(year(date)>0) %>%
+  tsibble::fill_gaps() -> df_lp6
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP24) %>%
+  distinct(date, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  tsibble::fill_gaps() -> df_lp24
+
+merge(df_lp6, df_lp12, by = "date", all = TRUE) %>%
+  merge(df_lp24, by = "date", all = TRUE) -> merged_df
+
+merged_df %>%
+  dplyr::mutate(
+    LP = coalesce(LP12, LP6, LP24) %>% replace_na(0)
+  ) %>%
+  as_tsibble(
+    index = date
+  ) -> lp_df
+
+```
+
+```{r}
+describe(lp_df$LP) 
+```
+
+```{r}
+getmode(na.omit(lp_df$LP)) %>%
+  print(cat("Modus: " ))
+
+median(lp_df$LP, na.rm = TRUE) %>%
+  print(cat("Median: "))
+
+mean(lp_df$LP, na.rm = TRUE) %>%
+  print(cat("Mean: "))
+``` 
+
+```{r}
+max_slp <- max(lp_df$LP, na.rm= TRUE)
+min_slp <- min(lp_df$LP, na.rm= TRUE)
+var_rozpatie <- max_slp - min_slp
+print(cat("Variacne rozpatie", var_rozpatie))
+
+# Interquartile range
+Q1_slp <- quantile(lp_df$LP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3_slp <- quantile(lp_df$LP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+
+(IQR(lp_df$LP, na.rm = T ) / 2) %>%# interquartile range
+  print(cat("Medzikvantilova odchýlka: "))
+
+var(lp_df$LP, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
+
+EnvStats::cv(lp_df$LP, na.rm = T) %>% print(cat("Variacny koeficient: "))# variacny koeficient
+```
+
+```{r}
+summary(lp_df$LP)
+lp_df$LP %>% profiling_num()
+```
+
+
+```{r}
+lp_df %>%
+  filter(year(date) == 2002 ) %>%
+  #filter(LP<200) %>%
+  autoplot( LP) +
+    labs(title = "Time graph of liquid pc",
+         y = "Amont of lp in mm",
+         x = "Date"
+         )
+
+```
+
+
+
+
+```{r}
+lp_df %>%
+    dplyr::filter(year(date)>2015) %>%
+    gg_season(LP, labels = "both") +
+    labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+```{r}
+lp_df %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    year_month = yearmonth(date)
+  ) %>%
+    dplyr::group_by(year_month) %>%
+  dplyr::select(-date) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year_month, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(year_month)>2005) %>%
+  gg_season(LP_SUM, labels = "both") +
+    labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+```{r}
+lp_df %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    year = yearmonth(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year
+    ) -> monthly_lp_df 
+
+monthly_lp_df %>%
+  autoplot()
+
+m <- monthly_lp_df %>%
+   model(STL(LP_SUM )) 
+
+m %>%
+  components() %>%
+  autoplot()
+
+monthly_lp_df %>%
+  model(trend_model = TSLM(LP_SUM ~ trend())) -> m
+
+monthly_lp_df %>%
+  model(trend_model = TSLM(LP_SUM ~ trend() + season())) -> s_m
+
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(monthly_lp_df) 
+
+s_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(monthly_lp_df) 
+
+report(m)
+  
+
+
+lp_df %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year
+    ) -> yearly_lp_df
+
+yearly_lp_df %>%
+  autoplot()
+
+m <- yearly_lp_df %>%
+   model(STL(LP_SUM )) 
+
+m %>%
+  components() %>%
+  autoplot()
+
+yearly_lp_df %>%
+  model(trend_model = TSLM(LP_SUM ~ trend())) -> m
+
+
+
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(yearly_lp_df) 
+
+
+report(m)
+```
+
+
+```{r}
+
+all_data %>%
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(-LP, -LP24) -> df_no_lp
+  
+lp_df %>%
+  as.data.frame() %>%
+  merge(df_no_lp, by='date', all = TRUE) -> merged_df
+
+
+pairs(~TMP +LP, data=merged_df)
+```
+
+```{r}
+lp_df %>% 
+  as.data.frame() %>%
+  dplyr::mutate(
+    year_month = year(date)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::select(-date) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year_month, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  #dplyr::filter(year(year_month)>2010) %>%
+  gg_subseries(LP_SUM, period = "1 year") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+
+```{r}
+lp_df %>% 
+  as.data.frame() %>%
+  dplyr::mutate(
+    year_month = yearmonth(date)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::select(-date) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year_month, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  #dplyr::filter(year(year_month)>2010) %>%
+  gg_subseries(LP_SUM, period = "1 year") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+```{r}
+lp_df %>%
+  dplyr::filter(LP< 200) %>%
+  ggplot(aes(x=LP)) + 
+    geom_histogram(bins = 10, binwidth = 2,fill="2", color="#e9ecef") +
+    labs(title = paste("Liquid precipitation histogram")) +
+    xlab("Liquid precipitation") +
+    ylab("Frequency") 
+```
+```{r}
+df <- lp_df %>% 
+  dplyr::select('LP') %>%
+  tidyr::gather(key='label', value = 'lp')
+
+ggplot(data = df, aes( lp,factor(label), colour=label)) +
+  geom_boxplot() +
+  labs(title = paste("Boxplot Liquid precipitation")) +
+  xlab("") +
+  ylab("") 
+```
+
+```{r}
+df <- lp_df %>% 
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::select(all_of(c('year', 'LP')))
+
+ggplot(data = df, aes( LP,factor(year), colour=year)) +
+  geom_boxplot() 
+```
+
+```{r}
+df <- lp_df %>%
+  dplyr::select('LP') %>%
+  tidyr::gather(key='label', value = 'lp')
+
+ggplot(data = df, aes(factor(label), lp, fill=label)) +
+  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))
+```
+
+```{r}
+lp_df %>%
+  model(STL(LP )) -> m 
+
+m %>%
+  components() %>%
+  autoplot() + labs(x = "Observation")
+
+m %>%
+  components() %>%
+  autoplot(season_adjust) + labs(x = "Observation")
+
+m %>%
+  components()
+
+m %>%
+  components() %>%
+  filter(year(date) > 2010) %>%
+  gg_season(season_year, labels = "both") +
+    labs(y = "Temperature",
+       title = "Seasonal plot: Temperature")
+
+m %>%
+  components() %>%
+  filter(year(date) > 2015) %>%
+  gg_season(trend, labels = "both") +
+    geom_smooth() +
+    labs(y = "Temperature",
+       title = "Seasonal plot: Temperature")
+
+
+m %>%
+  components() %>%
+  autoplot(trend) 
+
+```
+
+```{r}
+classify_rainy_day <- function (daily_rain) {
+  if(daily_rain == 0){
+    return (0)
+  }
+  else if( daily_rain < 10.0){
+    return (1)
+  }
+  else if( daily_rain < 35.5){
+    return (2)
+  }
+  else if( daily_rain < 64.4){
+    return (3)
+  }
+  else if( daily_rain < 124.4){
+    return (4)
+  }
+  else {
+    return (5)
+  }
+}
+
+lp_df %>%
+  dplyr::mutate(
+    day_class = map_dbl(LP, classify_rainy_day)
+  ) -> lp_dc_df
+
+lp_dc_df%>%
+  autoplot( day_class) +
+    labs(title = "Time graph of liquid pc",
+         y = "Amont of lp in mm",
+         x = "Date"
+         )
+
+```
+
+```{r}
+lp_dc_df %>%
+  as.data.frame()%>%
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::group_by(year, day_class) %>%
+  dplyr::summarise(
+    n_day_class = n()
+  ) %>%
+  as.data.frame() -> class_n_df
+
+class_n_df %>%
+  filter(day_class == 0) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of dry days in year",
+         y = "Number of dry days",
+         x = "year"
+         )
+
+class_n_df %>%
+  filter(day_class == 1) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of light rain days in year",
+         y = "Number of light rain days",
+         x = "year"
+         )
+
+class_n_df %>%
+  filter(day_class == 2) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth() +
+    labs(title = "Number of moderate rain days in year",
+         y = "Number of moderate rain days",
+         x = "year"
+         )
+
+class_n_df %>%
+  filter(day_class == 3) %>%
+  as_tsibble(
+    index = year
+    ) %>%
+  autoplot(n_day_class) +
+    geom_smooth()+
+    labs(title = "Number of rather heavy rain days in year",
+         y = "Number of rather heavy rain days",
+         x = "year"
+         )
+
+class_n_df %>%
+  filter(day_class != 0) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(rainy_days = sum(n_day_class)) %>%
+  as.data.frame() %>%
+  as_tsibble(
+    index = year
+  ) %>%
+  autoplot(rainy_days) +
+    geom_smooth()+
+    labs(title = "Number of  days with rain in year",
+         y = "Number of days with rain",
+         x = "year"
+         )
+
+
+```
+
+
+
+```{r}
+lp_dc_df %>%
+  as.data.frame()%>%
+  dplyr::mutate(
+    year = yearmonth(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(
+    num_dry_days = sum(ifelse(day_class ==0, 1, 0)),
+    num_rainy_days = sum(ifelse(day_class ==0, 0, 1)),
+    sum_rain = sum(LP)
+  ) %>%
+  mutate(
+    precipitation_ratio = num_rainy_days / sum_rain
+  ) %>%
+  as.data.frame() %>%
+  as_tsibble(
+    index = year
+  ) -> df
+
+View(df)
+
+# rany days
+df %>% 
+  autoplot(num_rainy_days)
+
+df %>%
+  model(trend_model = TSLM(num_rainy_days ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df)  
+
+
+report(m)
+
+# dry days
+
+df %>% 
+  autoplot(num_dry_days)
+
+df %>%
+  model(trend_model = TSLM(num_dry_days ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df)  
+
+
+report(m)
+
+
+# ratio
+
+df %>% 
+  autoplot(precipitation_ratio)
+
+df %>%
+  model(trend_model = TSLM(precipitation_ratio ~ trend())) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(df)  
+
+
+report(m)
+
+```
+
+
+

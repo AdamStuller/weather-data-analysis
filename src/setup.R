@@ -7,6 +7,7 @@ library(corrplot)
 library(tsibble)
 library(fable)
 library(imputeTS)
+library(EnvStats)
 
 # mode function
 getmode <- function(v) {
