@@ -1,0 +1,516 @@
+---
+title: "1.hypotéza"
+output: pdf_document
+---
+
+## Ročná teplota rastie a s ňou rastie aj množstvo zrážok.
+
+Teplota v súčasných rokoch je vyššia ako teplota pred 40 rokmi.
+
+```{r, include = FALSE}
+source('setup.R')
+```
+
+```{r}
+all_data <- read.csv(file= "../data/all.csv")
+```
+
+```{r}
+all_data_split_date <- mutate(
+    all_data, 
+    time = format(as_datetime(DATE), format = "%H:%M:%S"),
+    date = format(as_date(DATE), format = "%Y-%m-%d"),
+    month = month(DATE),
+    year = year(DATE),
+    md = substr(DATE, start = 6, stop = 10)
+  )
+
+data_temperature <- all_data_split_date %>% dplyr::select('DATE', 'TMP', 'time', 'date', 'year', 'month', 'md')
+data_temperature <- data_temperature[!is.na(data_temperature$TMP), ]
+head(data_temperature)
+
+```
+
+### Priemerná denná teplota
+
+Graf zobrazuje priemerné denné teploty pre roky 1973 - 2020. Cez graf je vykreslený 95% interval spoľahlivosti lineárneho modelu. Ak by sme merania opakovali na inej vzorke, 95% regresných priamok bude v tomto intervale. Vidíme, že s pribúdajúcim časom sa lineárna priamka mierne zvyšuje, čo svedčí o narastajúcej teplote.
+
+```{r}
+# priemerna denna teplota 
+df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), year = year, md = md)
+df_dayMean_tmp <- unique(df_dayMean_tmp)
+head(df_dayMean_tmp)
+
+
+ggplot(df_dayMean_tmp, aes(x = as.Date(date), y = tmp)) +
+  geom_line(color = "#4b9295") + 
+  geom_smooth(method = "lm", level = 0.95, color = 2, se = T) +
+  labs(title = "Priemerné denné teploty: 1973 - 2020", x = "Rok", y = "Teplota") +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(-30,30, by = 3))
+
+
+table_dayMean_tmp <- data.table(year = df_dayMean_tmp$year, md = df_dayMean_tmp$md, tmp = df_dayMean_tmp$tmp)
+
+# vytvorenie tabulky 
+# table_year_md_tmp <- dcast(table_dayMean_tmp, formula = year ~ md, value.var = 'tmp' ) # riadky = roky, stlpce = dni
+table_year_md_tmp <- dcast(table_dayMean_tmp, formula = md ~ year, value.var = 'tmp' ) # riadky = dni, stlpce = roky
+head(table_year_md_tmp)
+
+```
+
+
+
+
+```{r}
+# SOM mapa -> roky a dni
+# vytvorenie matice
+# set.seed(123)
+# data_md_matrix <- as.matrix(table_year_md_tmp[,-1])
+# 
+# som_grid <- kohonen::somgrid(xdim = 4, ydim = 3, topo = "hexagonal")
+# 
+# som_model <- kohonen::som(X = data_md_matrix, grid = som_grid,
+#               rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 9)
+# 
+# plot(som_model, type="changes")
+# 
+# graphics::plot(som_model, type = "codes", shape = "straight")
+# 
+# som_model$unit.classif # zadelenie dni do tried
+# table(som_model$unit.classif)
+# 
+# som_model$grid
+# som_model$codes[[1]]
+
+```
+
+### Priemerná mesačná teplota
+
+Graf zobrazuje priemerné mesačné teploty pre jednotlivé roky 1973 - 2020. Tu je použitá metóda GAM - Generalized Additive Model, ktorá zachytáva aj sezónne a trendové zložky časového radu.
+Opäť aj tu je vidieť, že teplota sa mierne s časom zvyšuje.
+
+
+
+```{r}
+# priemerna mesacna teplota 
+df_monthMean_tmp <- data_temperature %>% group_by(year,month) %>% summarise(tmp = na.omit(mean(TMP)), date = date)
+head(df_monthMean_tmp)
+
+ggplot(df_monthMean_tmp, aes(x = as.Date(date), y = tmp)) +
+  geom_line( color="#882545") + 
+  geom_smooth(color = 4, method = "gam") +
+  labs(title = "Priemerné mesačné teploty: 1973 - 2020", x = "Rok", y = "Teplota") +
+  scale_x_date(date_breaks = "2 year", date_labels = "%Y") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(-30,30, by = 3))
+
+
+table_monthMean_tmp <- data.table(year = df_monthMean_tmp$year, month = df_monthMean_tmp$month, tmp = df_monthMean_tmp$tmp)
+table_monthMean_tmp <- unique(table_monthMean_tmp)
+
+# vytvorenie tabulky 
+table_year_month_tmp <- dcast(table_monthMean_tmp, formula = year ~ month, value.var = 'tmp' ) # riadky = roky, stlpce = dni
+# table_year_month_tmp <- dcast(table_monthMean_tmp, formula = month ~ year, value.var = 'tmp' ) # riadky = dni, stlpce = roky
+head(table_year_month_tmp)
+
+```
+
+
+### Heatmap
+
+Na základe heatmapy tiež vidíme rozdelenie rokov podľa teploty. Najteplejší bol 7.mesiac a to v rokoch, ktoré majú tmavšiu bordovú farbu. Naopak najchladnejší bol január, v rokoch, ktoré majú tmavšiu modrú farbu.
+
+
+```{r}
+data_month_matrix <- as.matrix(table_year_month_tmp[,-1])
+dim(data_month_matrix)
+
+# HEATMAP
+heatmap(data_month_matrix, 
+        labRow = sort(table_year_month_tmp$year), 
+        scale = 'none', 
+        main = "Heatmap (teplota ~ mesiac ~ rok)", 
+        col = colorRampPalette(c("#1d539f", "#408ab5" ,"#74ADD1", "#ABD9E9" ,"#E0F3F8" ,"#FFFFBF", "#feea90", "#fd9f68", "#a70146"))(25))
+
+```
+
+### Hierarchické klastrovanie
+
+Výstupom hierarchického zhlukovania je strom nazývaný dendrogram, ktorý zobrazuje sekvencie klastrov.Výška jednotlivých klastrov určuje stupeň podobnosti podľa stupnice na ľavej strane dendrogramu. Určili sme optimálny počet klastrov 4. Opäť podobné roky sú zoskupené do 1 klastra. V zelenom klasti sa nachádza najviac rokov nad 2000, z čoho môžme povedať, že teplota v aktuálnom tisícročí je podobná vo viacerých rokoch. Naopak väčšina 80-tych rokov je v modrom klastri teda tieto sú si teplotou dosť podobné.
+
+
+```{r}
+rownames(data_month_matrix) <- table_year_month_tmp$year
+res <- factoextra::hcut(dist(data_month_matrix), k = 4, stand = T)
+
+fviz_dend(res, rect = TRUE)
+fviz_cluster(res)
+```
+
+
+### Klastrovanie metódou SOM (Self-Organized Map)
+
+Zvolili sme mapu s rozmermi 3x2 polí, Euklidovskú metódu výpočtu vzdialenosti a tvar šesťuholníka, ktorý má viac susedov. Číslovanie polí je od 1 vľavo dole smerom doprava, najvyššie číslo má pole mapy vpravo hore.
+
+Nastavenie ďalších parametrov súvisí s trénovaním SOM. Ak je parameter radius = 0 tak SOM je veľmi podobný K-Means algoritmu. Parameter radius by mal byť na začiatku cca 2/3 z rozmerov mapy - tu 3x2 = 6, čiže 4, postupne sa znižuje. Parameter rlen znamená koľkokrát sa dáta znovu načítajú a hodnotia v SOM. Tento parameter bol nastavený experimentálne sledovaním priebehu grafu “Changes”. Hodnoty v grafe by sa mali znižovať a nakoniec by už mali oscilovať okolo finálnej hodnoty. Vtedy už tento parameter netreba ďalej meniť.
+
+```{r}
+# SOM mapa -> roky a mesiace
+set.seed(123)
+som_grid <- kohonen::somgrid(xdim = 3, ydim = 2, topo = "hexagonal")
+
+set.seed(123)
+som_model <- kohonen::som(X = data_month_matrix, grid = som_grid,
+              rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 4)
+
+plot(som_model, type="changes")
+
+graphics::plot(som_model, type = "codes", shape = "straight")
+
+som_model$unit.classif # zadelenie rokov do tried
+table(som_model$unit.classif) # pocty v triedach
+
+
+df <- data.frame(year = c(1973:2020), class = som_model$unit.classif)
+df[order(df$class),]
+
+df_1 <- merge(x = df %>% filter(class == 1), y = df_monthMean_tmp, by = "year", all = F)
+df_1 <- unique(df_1) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_1 <- mean(df_1$mean_tmp)
+
+df_2 <- merge(x = df %>% filter(class == 2), y = df_monthMean_tmp, by = "year", all = F)
+df_2 <- unique(df_2) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_2 <- mean(df_2$mean_tmp)
+
+df_3 <- merge(x = df %>% filter(class == 3), y = df_monthMean_tmp, by = "year", all = F)
+df_3 <- unique(df_3) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_3 <- mean(df_3$mean_tmp)
+
+df_4 <- merge(x = df %>% filter(class == 4), y = df_monthMean_tmp, by = "year", all = F)
+df_4 <- unique(df_4) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_4 <- mean(df_4$mean_tmp)
+
+df_5 <- merge(x = df %>% filter(class == 5), y = df_monthMean_tmp, by = "year", all = F)
+df_5 <- unique(df_5) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_5 <- mean(df_5$mean_tmp)
+
+df_6 <- merge(x = df %>% filter(class == 6), y = df_monthMean_tmp, by = "year", all = F)
+df_6 <- unique(df_6) %>% group_by(year) %>% summarise(mean_tmp = mean(tmp))
+mean_tmp_6 <- mean(df_6$mean_tmp)
+
+tmp_class <- data.frame(class = c(1:6), mean_tmp = c(mean_tmp_1,mean_tmp_2,mean_tmp_3,mean_tmp_4,mean_tmp_5,mean_tmp_6))
+tmp_class
+
+ggplot(tmp_class, aes(x = class, y = mean_tmp, fill = as.factor(class))) +
+  geom_bar(stat = "identity") +
+  labs(title = "Priemerné teploty v triedach", x = "Trieda", y = "Teplota") +
+  theme(legend.position="none") +
+  geom_text(mapping = aes(label = round(mean_tmp,2)), vjust = -0.5, size = 4) +
+  scale_y_continuous(breaks = seq(0, 12, by = 1)) +
+  scale_x_continuous(breaks = seq(1,6, by = 1)) 
+  
+
+ggplot(df, aes(x = year, y = class)) +
+  geom_point(aes(color = as.factor(class)), size = 2) +
+  scale_y_continuous(breaks = seq(1,6, by = 1)) +
+  labs(title = "Roky zadelené v triedach", x = "Rok", y = "Trieda") +
+  scale_x_continuous(breaks = seq(1973, 2020, by = 1)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  theme(legend.position="none")
+
+```
+
+
+Na základe klastrovania pomocou SOM mapy sme zadelili jednotlivé roky do 6 tried podľa ich priemerných mesačných teplôt. Ako vidieť z grafov 6. trieda obsahuje väčšinu súčasných rokov nad 2010 a priemerná teplota v tejto triede je najvyššia, čo svedčí o tom, že v posledných rokoch sa teplota zvyšuje. Naopak tried č.1 obsahuje väčšinu 70-tych rokov a priemerná teplota rokov patriacich do tejto triedy je najnižšia. 
+
+
+
+```{r}
+
+add_group <- function(val) {
+  
+  if(val <= -20){
+    return(as.numeric(1))
+  }
+  if(val <= -10){
+    return(as.numeric(2))
+  }
+  if(val <= 0){
+    return(as.numeric(3))
+  }
+  if(val <= 10){
+    return(as.numeric(4))
+  }
+  if(val <= 20){
+    return(as.numeric(5))
+  }
+  if(val > 20){
+    return(as.numeric(6))
+  }
+  
+} 
+
+df_dayMean_tmp <- df_dayMean_tmp %>% dplyr::mutate(
+    group = map_dbl(tmp, add_group)
+)
+
+df_tmp_groups <- df_dayMean_tmp %>% group_by(year, group) %>% count()
+df_tmp_groups$group <- factor(df_tmp_groups$group)
+
+table_groups <- as.data.table(df_tmp_groups)
+
+
+# vytvorenie tabulky - pocty dni 
+table_groups_tmp <- dcast(table_groups, formula = year ~ group, value.var = 'n' , fill = 0)
+
+
+ggplot(data = df_tmp_groups %>% filter(group == 1), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#108dad") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,10, by = 1)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 1)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota pod -20°C"), y = "Počet dní", x = "Rok")
+  
+ggplot(data = df_tmp_groups %>% filter(group == 2), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#3cacc8") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,30, by = 2)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od -20°C až -10°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 3), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#4dc7ba") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,100, by = 5)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od -10°C až 0°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 4), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#67be55") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 10)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od 0°C až 10°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 5), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#bdb932") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 10)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota od 10°C až 20°C"), y = "Počet dní", x = "Rok")
+
+ggplot(data = df_tmp_groups %>% filter(group == 6), aes(x=year, y=n, fill=group)) +
+  geom_bar(stat="identity", fill = "#c64539") +
+  theme(axis.text.x=element_text(angle=60, hjust=1)) +
+  scale_y_continuous(breaks = seq(0,200, by = 3)) +
+  scale_x_continuous(breaks = seq(1973,2020, by = 2)) +
+  labs(title = paste("Počty dní kedy bola priemerná teplota nad 20°C"), y = "Počet dní", x = "Rok")
+
+```
+
+V grafoch je priemerná denná teplota rozdelená do 6 skupín nasledovne:
+
+- pod -20°C
+- od -20°C do -10°C
+- od -10°C do 0°C
+- od 0°C do 10°C
+- od 10°C do 20°C
+- nad 20°C
+
+Pre každú skupinu a každý rok sú spočítané počty dní, kedy sa priemerná denná teplota nachádzala v danom intervale.
+
+Z grafu pre poslednú skupinu (nad 20°C) je vidieť, že počet dní kedy teplota presahuje 20°C stúpa s pribúdajúcimi rokmi. Teda počet teplých dní sa časom zvyšuje.
+
+
+
+
+### Predikčné modely na 2 roky:
+1. ETS - Exponential smoothing state space model
+2. ARIMA - Autoregressive integrated moving average
+3. sNAIVE - Naive method
+
+```{r}
+tmpts <- data_temperature %>%
+  dplyr::mutate(
+    year_month = yearmonth(paste(year, month))
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    ) 
+
+tmpts %>%
+  model(
+    ets = ETS(box_cox(tmp, 0.3)),
+    arima = ARIMA(log(tmp)),
+    snaive = SNAIVE(tmp)
+  ) %>%
+  forecast(h = "2 years") %>% 
+  autoplot(filter(tmpts, year(year_month) > 2010), level = NULL)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+### Lineárny model
+
+H0: ai=0 H1: ai!=0. (vhodný je model, kde sú koeficienty štatisticky významne odlišné od 0)
+
+V našom prípade chceme aby koeficienty sezónnych aj trendovej zložky boli rôzne od nuly, pretože vtedy existuje závislosť. 
+
+
+**1. Sezónny model**
+
+Vidíme, že p-hodnoty konštanty(intercept) aj trendovej a sezónnej zložky modelu sú veľmi nízke (pod hladinou významnosti alfa = 0.05) teda sú štatisticky významné, teda sú dôležitou súčasťou modelu.
+
+P-hodnota celého modelu je menšia ako hladina významnosti 0.05, teda celkovo model je významný. Teda môžeme povedať, že existuje štatisticky významná závislosť medzi teplotou a sezónnymi a trendovou zložkou časového radu teploty. 
+
+Hodnota výberového reziduálneho rozptylu (Residual standard error, RSE) je 1.783, čo je veľmi málo. Teda skutočné hodnoty teploty sa odchyľujú od odhadnutých hodnôt ležiacich na regresnej priamke približne o ± 1.783.
+
+Hodnoty Multiple R-squared (koeficient determinácie) aj Adjusted R-squared sú vysoké. Až 95% variability dát je vysvetlených modelom. Teda model je veľmi dobrý, dobre popisuje dáta a zachytáva ich variabilitu.
+
+
+**1. Trendový model**
+
+P-hodnota modelu je 0.56506, teda je väčšia ako 0.05, čo znamená, že závislosť teploty od trendovej zložky nie je štatisticky významná.
+
+
+Nakoniec môžme vidieť hodnoty predikčného modelu trendovej aj sezónnych zložiek vykreslené do grafu. Trendová zložka je mierne stúpajúca čo svedčí o zvyšujúcej sa teplote v nasledujúcich rokoch, avšak táto priama závislosť nie je štatisticky významná.
+
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as.data.frame %>%
+  as_tsibble(
+    index = year_month
+    ) -> tsdf
+  
+tsdf %>%
+  model(trend_model = TSLM(tmp ~ trend() + season())) -> season_m
+
+tsdf %>%
+  model(trend_model = TSLM(tmp ~ trend())) -> trend_m
+
+season_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) +
+  labs(title = "Predikcia - sezónne zložky", x = "Rok") +
+  scale_y_continuous(breaks = seq(-10, 30, by = 3))
+
+trend_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) +
+  labs(title = "Predikcia - trendová zložka", x = "Rok") +
+  scale_y_continuous(breaks = seq(-10, 30, by = 3))
+
+report(season_m)
+report(trend_m)
+
+
+augment(season_m) %>%
+  ggplot(aes(x = tmp, y = .fitted)) +
+  geom_point() +
+  labs(
+    y = "Fitted (predicted values)",
+    x = "Data (actual values)",
+    title = "Hodnoty modelu oproti aktuálnym hodnotám"
+  ) +
+  geom_abline(intercept = 0, slope = 1)
+
+```
+
+### Moving average - plávajúci priemer cez 12 mesiacov + lineárny model
+
+Kĺzavý alebo plávajúci priemer je indikátor sledovania trendov založený na minulých hodnotách.
+Plávajúci priemer počítame z hodnôt teploty pre každý mesiac a rok, tieto hodnoty následne vstupujú do lineárneho modelu.
+
+Výsledky modelu sú však o niečo horšie ako pre lineárny model. Na základe p-hodnoty ale model nezamietame a je štatisticky významný avšak zachytáva len necelé 2% variability dát.
+
+Túto skutočnosť vidieť aj na grafe predikovaných hodnôt plávajúceho priemeru. Avšak trend je mierne stúpajúci.
+
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as.data.frame %>%
+  dplyr::mutate(
+    MA = slider::slide_dbl(tmp, mean,
+                .before = 5, .after = 6)
+  ) %>%
+  as_tsibble(
+    index = year_month
+    ) -> tsdf
+  
+tsdf %>%
+  model(trend_model = TSLM(MA ~ trend())) -> m
+
+tsdf %>%
+  model(trend_model = TSLM(MA ~ trend() + season())) -> s_m
+
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) +
+  labs(title = "Predikcia - trendová zložka", x = "Rok") +
+  scale_y_continuous(breaks = seq(0, 20, by = 2))
+
+s_m %>%
+  forecast(h = "10 years") %>%
+  autoplot(tsdf) +
+  labs(title = "Predikcia - sezónna zložka", x = "Rok") +
+  scale_y_continuous(breaks = seq(0, 20, by = 2))
+
+report(m)
+```
+
+### Naive model
+
+Výsledky naive modelu nie sú veľmi dobré nakoľko sú takmer rovnaké pre každý rok a z grafu nevidno žiadny stúpajúci trend. 
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
+  as_tsibble(
+    index = year_month
+    )  %>%
+  tsibble::fill_gaps()-> tsdf
+  
+tsdf %>%
+  model(snaive = SNAIVE(tmp)) -> m
+
+m %>%
+  forecast(h = "10 years") %>%
+  autoplot(filter(tsdf, year(year_month) > 2), level = NULL) 
+
+report(m)
+
+```
+
+
+

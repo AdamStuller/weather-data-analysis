@@ -7,6 +7,9 @@ library(corrplot)
 library(tsibble)
 library(fable)
 library(imputeTS)
+library(feasts)
+library(factoextra)
+library(fpp3)
 
 # mode function
 getmode <- function(v) {

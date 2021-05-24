@@ -1,8 +1,7 @@
 ---
 title: "Temperature"
-output:
-  html_document:
-    df_print: paged
+author: "Denisa Mensatorisova"
+output: pdf_document
 ---
 
 ```{r, include = FALSE}
@@ -37,11 +36,10 @@ summary(all_data$TMP)
 all_data['TMP'] %>% profiling_num()
 
 getmode(na.omit(all_data$TMP)) # modus
-
 ```
 
 
-### Centralna poloha dat
+### Centrálna poloha dát
 
 Hodnota výberového mediánu je 9.2 a hodnota výberového priemeru 9.482. Rozdiel hodnôt je iba 0.3 teda výberový priemer môžme považovať za dobrý odhad strednej hodnoty. 
 
@@ -106,12 +104,8 @@ Takéto hodnoty sa v našich dátach nevyskytujú.
 
 
 ```{r boxplot, warning = FALSE}
-
-# boxplot
 boxplot(all_data$TMP, col = 2, ylab = "TMP", main = "Temperature boxplot")
-
 ```
-
 
 
 ```{r 1973 - 1979, warning = FALSE}
@@ -174,7 +168,6 @@ Grafy priemerných mesačných teplôt pre rok 2010 a 2020. Vidíme mierne zvý�
 all_data_split_date <- mutate(all_data, day = mday(DATE), month = month(DATE), year = year(DATE), hour = hour(DATE), min = minute(DATE))
 
 all_data_split_date <- all_data_split_date[!is.na(all_data_split_date$TMP), ]
-all_data_split_date
 
 months <- c('JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC')
 
@@ -206,9 +199,7 @@ ggplot(mean_tmp_2020, aes(x = factor(months,months), y = mean)) +
 Porovnanie priemerných mesačných teplôt v roku 1973 a 2020. Z grafov vidieť, že sa zvýšila priemerná teplota v zimných mesiacoch nad 0°C (okrem januára). Celkovo sa priemerné teploty zvýšili približne o 1-2°C.
 
 
-
 ```{r, warning = FALSE}
-
 # Mean TMP by year
 mean_yr_tmp <- all_data_split_date %>% group_by(year) %>% summarise(mean = mean(na.omit(TMP)))
 
@@ -224,6 +215,7 @@ ggplot(mean_yr_tmp, aes(x = year, y = mean)) +
 
 ```
 
+
 Graf priemerných ročných teplôt pre roky 1973 - 2020. Vidíme, že najnižšia priemerná teplota bola v roku 1980 a najvyššia v roku 2014. Celkovo môžme vidieť mierne zvýšenie priemerných teplôt v rokoch 2010 - 2020 v porovnaní so 70.-tymi rokmi.
 
 
@@ -233,7 +225,6 @@ Na histograme vidíme početnosti jednotlivých hodnôt teploty. Najpočetnejši
 
 ```{r histogram, warning = FALSE}
 
-# histogram
 ggplot(all_data, aes(x = TMP)) + 
   geom_histogram(bins = 40, binwidth = 2, fill = 2, color = "#e9ecef") +
   labs(title = paste("Histogram teploty")) +
@@ -247,10 +238,9 @@ ggplot(all_data, aes(x = TMP)) +
 
 ### Graf hustoty
 
-Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara). Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlnený oproti normálnemu rozdeleniu. Modrá reprušovaná čiare predstavuje priemernú teplotu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia. Z grafu vidno aj vrchol - najčastejšiu hodnotu 1 a niekoľko menších vrcholov v okolí hodnoty 8 a 15..
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt teploty (červená čiara). Čiary nie sú rovnaké, vrch rozdelenia je mierne zvlnený oproti normálnemu rozdeleniu. Modrá reprušovaná čiare predstavuje priemernú teplotu. Krivka teploty je viac plochá ako krivka normálneho rozdelenia, o čom svedčí aj hodnota špicatosti, ktorá je o niečo nižšia ako hodnota špicatosti normálneho rozdelenia. Z grafu vidno aj vrchol - najčastejšiu hodnotu 1 a niekoľko menších vrcholov v okolí hodnoty 8 a 15.
 
 ```{r density plot, warning = FALSE}
-
 # denisty plot 
 # data z normalneho rozdelenia
 data_norm <- data.frame(dens = c(rnorm(length(na.omit(all_data$TMP)), mean(all_data$TMP, na.rm = T), sd(all_data$TMP, na.rm = T))))
@@ -275,7 +265,6 @@ Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričo
 
 ```{r violin, warning = FALSE}
 
-# violin plot
 df <- all_data %>%
   dplyr::select('TMP') %>%
   tidyr::gather(key = 'label', value = 'tmp')
@@ -291,6 +280,7 @@ ggplot(data = df, aes(factor(label), tmp, fill = tmp)) +
 
 Z nasledujúcich grafov vidíme rozdelenie hustoty pre jednotlivé roky 1973 - 1979 a 2010 - 2020. V roku 2017 boli dáta najmenej konzistentné a obsahujú viac nízkych hodnôt ako po iné roky. Hodnoty kvartilov sú v porovnaní zo 70-tymi rokmi posunuté vyššie.
 
+
 ```{r, warning = FALSE}
 df <- all_data %>% 
   dplyr::mutate(
@@ -300,14 +290,12 @@ df <- all_data %>%
   ) %>%
   dplyr::select(all_of(c('year', 'TMP')))
 
-
 ggplot(data = df %>% filter(year < 1980), aes(factor(year), TMP, fill = year)) +
   geom_violin(draw_quantiles=c(0.25, 0.5, 0.75)) +
   labs(title = paste("Husľový graf teploty pre roky 1973 - 1979"), x = "year", y = "temperature", fill = "year") +
   scale_y_continuous(breaks = seq(-40, 40, by = 5)) +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
   theme(legend.position="none")
-
 
 ggplot(data = df %>% filter(year >= 2010), aes(factor(year), TMP, fill = year)) +
   geom_violin(draw_quantiles=c(0.25, 0.5, 0.75)) +
@@ -348,10 +336,8 @@ ggplot(data = df %>% filter(year >= 2010), aes( TMP,factor(year), colour=year)) 
 
 Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je rozdelenie nameraných hodnôt teploty. Body ležia veľmi blízko priamky, odchyľujú sa len body v oblasti horných a dolných kvantilov, teda rozdelenie hodnôt teploty je podobné normálnemu rozdeleniu.
 
-
 ```{r qq, warning = FALSE}
 
-# QQ plot
 ggplot(data = all_data, aes(sample = TMP)) +
   stat_qq() + 
   stat_qq_line() +
@@ -379,18 +365,10 @@ ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) +
 ```
 
 
-### Kruhovy graf
-```{r}
-# n <- nrow(all_data)
-# lo <- (n * (n - 1) / 2)^(-1 / 2)
-# 
-# Vx <- lo * cos(pi * all_data$CIG)
-# Vy <- lo * sin(pi * all_data$CIG)
-# 
-# ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
-#   geom_point() + 
-#   coord_fixed()
-```
+
+
+
+### Časový graf teploty
 
 ```{r}
 all_data %>% 
@@ -402,13 +380,11 @@ all_data %>%
   as_tsibble(
     index = date
   ) %>%
-  #dplyr::filter(year(date)>2018) %>%
-autoplot( TMP) +
+  autoplot( TMP) +
   labs(title = "Time graph of temperature",
-       y = "Temperature",
-       x = "Date"
-       )
+       y = "Temperature", x = "Date")
 ```
+
 ```{r}
 all_data %>% 
   dplyr::mutate(
@@ -420,13 +396,16 @@ all_data %>%
     index = year_month
     ) %>%
   tsibble::fill_gaps() %>%
-autoplot( tmp) +
+  autoplot( tmp) +
   labs(title = "Time graph of temperature",
-       y = "Temperature",
-       x = "Date"
-       )
+       y = "Temperature", x = "Date")
 ```
 
+
+
+### Graf sezónností pre teplotu - roky 1980, 1990, 2000, 2010 a 2020
+
+Graf zobrazuje teploty pre jednotlivé sezóny počas ktorých boli merané. Vidíme, že modrá krivka pre rok 2010 v júli vystupuje nad ostatné krivky, naproti tomu červená krivka pre rok 1980 je v zimných mesiacoch nižia ako ostatné krivky. 
 
 ```{r}
 all_data %>% 
@@ -439,11 +418,13 @@ all_data %>%
     index = date
   ) %>%
   tsibble::fill_gaps() %>%
-  dplyr::filter(year(date)>2015) %>%
+  dplyr::filter(year(date) %in% c('1980','1990','2000','2010','2020')) %>%
+  tsibble::fill_gaps() %>%
   gg_season(TMP, labels = "both") +
   labs(y = "Temperature",
        title = "Seasonal plot: Temperature") 
 ```
+
 
 ```{r}
 all_data %>% 
@@ -461,6 +442,9 @@ all_data %>%
   labs(y = "Temperature",
        title = "Seasonal plot: Temperature") 
 ```
+
+
+
 
 
 
@@ -510,107 +494,17 @@ all_data %>%
   ) %>%
   autoplot(tmp, colour = "gray") +
   geom_line(aes(y = MA), colour = "#D55E00") +
-  labs(y = "Persons (thousands)",
-       title = "Total employment in US retail")
+  labs(y = "TMP", x = "Year",
+       title = "Moving average of temperature")
 
 
 #components(dcmp)
 ```
-```{r}
-all_data %>% 
-  dplyr::mutate(
-    year_month = yearmonth(DATE)
-  ) %>%
-  dplyr::group_by(year_month) %>%
-  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
-  as.data.frame %>%
-  as_tsibble(
-    index = year_month
-    ) -> tsdf
-  
-tsdf %>%
-  model(trend_model = TSLM(tmp ~ trend() + season())) -> season_m
-
-tsdf %>%
-  model(trend_model = TSLM(tmp ~ trend())) -> trend_m
-
-season_m %>%
-  forecast(h = "10 years") %>%
-  autoplot(tsdf) 
-
-trend_m %>%
-  forecast(h = "10 years") %>%
-  autoplot(tsdf) 
-
-report(season_m)
 
 
-augment(season_m) %>%
-  ggplot(aes(x = tmp, y = .fitted)) +
-  geom_point() +
-  labs(
-    y = "Fitted (predicted values)",
-    x = "Data (actual values)",
-    title = "Percent change in US consumption expenditure"
-  ) +
-  geom_abline(intercept = 0, slope = 1)
 
-```
+Chýbajúce hodnoty sme nahradili pomocou funkcie **na_seadec**, ktorá z časového radu odstráni sezónnu zložku, vykoná nahradenie chýbajúcich hodnôt pomocou interpolácie a následne sezónnu zložku pridá naspäť do časového radu.
 
-```{r}
-all_data %>% 
-  dplyr::mutate(
-    year_month = yearmonth(DATE)
-  ) %>%
-  dplyr::group_by(year_month) %>%
-  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
-  as.data.frame %>%
-  dplyr::mutate(
-    MA = slider::slide_dbl(tmp, mean,
-                .before = 5, .after = 6)
-  ) %>%
-  as_tsibble(
-    index = year_month
-    ) -> tsdf
-  
-tsdf %>%
-  model(trend_model = TSLM(MA ~ trend())) -> m
-
-tsdf %>%
-  model(trend_model = TSLM(MA ~ trend() + season())) -> s_m
-
-
-m %>%
-  forecast(h = "10 years") %>%
-  autoplot(tsdf) 
-
-s_m %>%
-  forecast(h = "10 years") %>%
-  autoplot(tsdf) 
-
-report(m)
-```
-```{r}
-all_data %>% 
-  dplyr::mutate(
-    year_month = yearmonth(DATE)
-  ) %>%
-  dplyr::group_by(year_month) %>%
-  dplyr::summarise(tmp = na.omit(mean(TMP))) %>%
-  as_tsibble(
-    index = year_month
-    )  %>%
-  tsibble::fill_gaps()-> tsdf
-  
-tsdf %>%
-  model(snaive = SNAIVE(tmp )) -> m
-
-m %>%
-  forecast(h = "10 years") %>%
-  autoplot(filter(tsdf, year(year_month) > 2), level = NULL) 
-
-report(m)
-```
 
 ```{r}
 all_data %>% 
@@ -630,19 +524,42 @@ na_seadec(tsdf,algorithm = "interpolation", find_frequency=TRUE) %>%
   ) %>%
   model(STL(tmp )) -> m 
 
+```
+
+Namerané hodnoty teploty sú časové rady, ktoré tvoria hodnoty zaznamenané postupne v čase
+(sú chronologicky usporiadané). Interval medzi jednotlivými meraniami je hodinový, teda 60 minut.
+
+Časový rad môžeme rozdeliť na niekoľko zložiek.
+
+Trendová zložka zachytáva dlhodobé zmeny v priemernom správaní sa časového radu. Napríklad pri dlhodobom zvyšovaní hodnôt. 
+
+Sezónna zložka zachytáva periodické zmeny v časovom rade, čiže zmeny, ktoré sa opakujú pravidelne, napr. každý rok. Pri teplote je možné vidieť nárast hodnôt v letných mesiacoch a naopak pokles hodnôt v zimných mesiacoch.
+
+Zvyšková zložka predstavuje zvyšok po odstránení sezónnej a trendovej zložky z dát.
+
+Na nasledujúcom grafe sú zobrazené púvodné hodnoty teploty a jednotlivé zložky časového radu teploty. Vidíme, že sezónna zložka je v priebehu rokov takmer rovnaká avšak trendová zložka ukazuje jasné stúpanie hodnôt za posledné roky.
+
+
+
+```{r}
 m %>%
   components() %>%
   autoplot() + labs(x = "Observation")
+```
 
+
+```{r}
 components(m) %>%
   as_tsibble() %>%
   autoplot(tmp, colour="gray") +
   geom_line(aes(y=trend), colour = "#D55E00") +
   geom_smooth(color = 4) +
   labs(
+    x = "Rok",
     y = "Tempeature",
     title = "Trend in avg. monthly temperature"
-  )
+  ) +
+  scale_y_continuous(breaks = seq(-20, 30, by = 2))
 
 components(m) %>%
   as_tsibble(
@@ -655,6 +572,8 @@ componenst_tsibble %>%
     tsl = TSLM(trend)
   ) %>%
   forecast(h = "10 years") %>%
-  autoplot(componenst_tsibble) 
+  autoplot(componenst_tsibble) +
+  labs(title = "Predikcia - trendová zložka", x = "Rok") +
+  scale_y_continuous(breaks = seq(2, 12, by = 1))
 
 ```

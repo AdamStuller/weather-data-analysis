@@ -1,24 +1,47 @@
 ---
-title: "SLP"
-author: "Adam Stuller"
-date: "4/12/2021"
-output: html_document
+title: "Sea level pressure"
+author: "Denisa Mensatorisova"
+output: pdf_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, include = FALSE}
+source('setup.R')
 ```
 
-# SLP -  Atmosfericky tlak v hektopascaloch
+## ATMOSPHERIC-PRESSURE-OBSERVATION sea level pressure
+
+The air pressure relative to Mean Sea Level (MSL).
+
+MIN: 08600 MAX: 10900 UNITS: Hectopascals
+
+SCALING FACTOR: 10
+
+DOM: A general domain comprised of the numeric characters (0-9).
+
+99999 = Missing
+
+Atribút sea level pressure reprezentuje atmosférický tlak meraný v hektopascaloch.
+
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
 
 ```{r}
 describe(all_data$SLP) 
 ```
+```{r, warning = FALSE}
+summary(all_data$SLP)
+all_data['SLP'] %>% profiling_num()
+
+```
 
 
-### Centralna poloha dat
+### Centrálna poloha dát
 
-Hodnota vyberoveho medianu je 1016.9 hP, modus je 1017 a vyberovy priemer je 1017.295. Priemer je teda dobry ukazatel a data zjavne nie su ovplivnene velkym mnozstvom outlierov ale ukazatele centralnej polohy su velmi silne.
+Hodnota výberového mediánu je 1016.9 hPa. Hodnota výberového priemeru je 1017.3 hPa. Hodnoty sú takmer rovnaké. Priemer je teda dobrý ukazovateľ a dáta zjavne nie sú ovplyvnené veľkým množstvom outlierov ale ukazovatele centrálnej polohy sú veľmi silné.
+
+Modus - najčastejšia hodnota je 1017 hPa.
+
 
 ```{r}
 getmode(na.omit(all_data$SLP)) %>%
@@ -31,62 +54,67 @@ mean(all_data$SLP, na.rm = TRUE)%>%
   print(cat("Mean: "))
 ```
 
+
+```{r}
+var(all_data$SLP, na.rm = T) %>% print(cat("Rozptyl: ")) # rozptyl
+var_rozpatie <- max(all_data$SLP, na.rm = T) - min(all_data$SLP, na.rm = T) # variacne rozpatie
+print(cat("Variačné rozpätie", var_rozpatie))
+
+# Interquartile range and outliers
+Q1 <- quantile(all_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
+Q3 <- quantile(all_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+IQR <- IQR(all_data$SLP, na.rm = T) # interquartile range
+
+(IQR/2) %>% # interquartile range
+  print(cat("Medzikvartilová odchýlka: "))
+
+# odlahle hodnoty
+length(which(all_data$SLP < (Q1 - 1.5*IQR)))
+length(which(all_data$SLP > (Q3 + 1.5*IQR)))
+
+# extremne hodnoty
+length(which(all_data$SLP < (Q1 - 3*IQR)))
+length(which(all_data$SLP > (Q3 + 3*IQR)))
+
+```
+
+
 ### Variabilita
 
-Vyberovy rozptyl je 67.58904 a smerodajna odchylka 8.221255 . Variancny koeficient je 0.008081483 alebo v percentach 0,8%. Vsetko to hovori o tom, ze data pri tlaku su relativne nakope a s malou variabilitou.
+Výberový rozptyl je 67.58904.
 
-Variacne rozpatie je 78.8 teda rozdiel medzi najmensim a najvacsim prvkom nie je velmi velky. Vychadza to pravdaze z podstatty atmosferickeho tlaku a jednotiek v ktorych bol namerany.
+Výberová smerodajná odchýlka je 8.221255. To znamená, že hodnoty atmosférického tlaku sa pohybujú približne v rozsahu 8.221255 okolo priemeru.
 
-Medzikvantilova odchýlka je **4.95.** Je to o dost mensie cislo a hovori nam to o tom, ze velka vacsina dat sa nachadza nakope okolo stednej hodnoty.
+Variačný koeficient je 0.008081483 alebo v percentách 0,8%, teda hodnoty atmosférického tlaku nie sú variabilné ale naopak sú relatívne nakope.
 
-Hodnota prvého a tretieho kvartilu je 1012, resp. 1022. Polovica dát sa teda nachadza v rospetí iba 10.
+Variačné rozpätie je 78.8. Daná hodnota predstavuje rozdiel medzi maximálnou a minimálnou nameranou hodnotou atmosférického tlaku. Maximálna hodnota atm. tlaku 1049.4 a minimálna 970.6 hPa. Vychádza to pravdaže z podstaty atmosferického tlaku a jednotiek, v ktorých bol nameraný.
 
-```{r}
-max_slp <- max(all_data$SLP, na.rm= TRUE)
-min_slp <- min(all_data$SLP, na.rm= TRUE)
-var_rozpatie <- max_slp - min_slp
-print(cat("Variacne rozpatie", var_rozpatie))
-```
+Medzikvartilová odchýlka (IQR/2) je 5.1, teda hodnoty sú rozptýlené približne 5.1 okolo mediánu. Je to o dosť menšie číslo a hovorí nám to o tom, že veľká väčšina dát sa nachádza nakope okolo stednej hodnoty.
 
-```{r}
-# Interquartile range
-Q1_slp <- quantile(all_data$SLP, 0.25, na.rm = T) # 25% hodnot je mensich a 75% vacsich
-Q3_slp <- quantile(all_data$SLP, 0.75, na.rm = T) # 75% hodnot je mensich a 25% vacsich
+Hodnota prvého a tretieho kvartilu je 1012, resp. 1022. Polovica dát sa teda nachádza v rozpätí iba 10 hPa.
 
-(IQR(all_data$SLP, na.rm = T ) / 2) %>%# interquartile range
-  print(cat("Medzikvantilova odchýlka: "))
-```
-
-```{r}
-var(all_data$SLP, na.rm = T) %>% print(cat("Rozptyl: "))# rozptyl
-
-EnvStats::cv(all_data$SLP, na.rm = T)%>% print(cat("Variacny koeficient: ")) # variacny koeficient
-```
-
-```{r}
-summary(all_data$SLP)
-all_data['SLP'] %>% profiling_num()
-```
 
 ### Asymetria
 
-Šikmost (skewness) je 0.1264733. Je mierne kladna, teda rozdelenie je mierne zasikmene do lava.
+Hodnota šikmosti je kladná 0.1264733, ale blízka 0, teda dáta nie sú veľmi zošikmené a ide o prevažne symetrické rozdelenie okolo strednej hodnoty, ktoré je len mierne zošikmené doľava. 
 
-Špicatost (kurtosis) - 3.539679 je lladna teda mierne spicatejsia pre tlak ako pre data z normálneho rozdelenia.
+Hodnota špicatosti je 3.539679, je o niečo väčšia ako 3 teda hodnoty majú špicatejšie rozdelenie. To znamená, že v súbore sa nachádza viac hodnôt bližších k strednej hodnote.
 
-### Histogram
-
-```{r}
-ggplot(all_data, aes(x=SLP)) + 
-  geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
-  labs(title = paste("Atmospheric pressure histogram")) +
-  xlab("SLP - Atmospheric pressure") +
-  ylab("Frequency") +
-  scale_x_continuous(breaks = seq(-20, 40, by = 5)) +
-  scale_y_continuous(breaks = seq(0, 20000, by = 2000))
-```
 
 ### Boxplot
+
+Hodnota 3.kvartilu je 1022.2 a hodnota 1. kvartilu 1012, teda medzikvartilové rozpätie (IQR) je 10.2. Uprostred krabice je zvýraznený medián hrubou čiernou čiarou (1017). Medián sa nachádza v strede krabice, teda vyzerá, že dáta sú symetrické okolo strednej hodnoty.
+
+Ďalej z boxplotu vidieť maximálnu a minimálnu hodnotu (vonkajšie hradby boxplotu).
+Maximálna hodnota (1037.5) je vypočítaná ako 3.kvartil + 1.5 * IQR (medzikvartilové rozpätie).
+Minimálna hodnota (996.7) je vypočítaná ako 1.kvartil - 1.5 * IQR (medzikvartilové rozpätie).
+
+Všetky hodnoty nachádzajúce sa nad a pod maximálnou a minimálnou hodnotou môžme považovať za odľahlé hodnoty. Počet odľahlých hodnôt nad maximálnou hodnotou je 2066, pod minimálnou sa nachádza 740 hodnôt. 
+
+Nakoniec pre odľahlé hodnoty overíme či patria medzi extrémne.
+Horná hranica extrémych hodnôt je vypočítaná ako 3.kvartil + 3 * IQR.
+Dolná hranica extrémych hodnôt je vypočítaná ako 1.kvartil - 3 * IQR.
+V dátach sa nachádza 45 extrémne nízkych hodnôt, ktoré sú nižšie ako hodnota 1.kvartilu - 3 * IQR, teda nižšie ako 981.4 hPa. Extrémne vysoké hodnoty sa v dátach nenachádzajú.
 
 ```{r}
 df <- all_data %>% 
@@ -99,9 +127,11 @@ df <- all_data %>%
 
 ggplot(data = df, aes( SLP,factor(year), colour=year)) +
   geom_boxplot() +
-  labs(title = paste("Boxplot atmosferickeho tlaku, jednotlive roky")) +
+  labs(title = paste("Boxplot atmosférického tlaku, jednotlivé roky")) +
   xlab("SLP - Atmospheric pressure") +
-  ylab("Year") 
+  ylab("Year") +
+  theme(legend.position = "none")
+  
 ```
 
 ```{r}
@@ -116,29 +146,82 @@ ggplot(data = df, aes( pressure,factor(label), colour=label)) +
   ylab("") 
 ```
 
-### Violin
+
+### Histogram
+
+Aj z histogramu vidíme, že rozdelenie hodnôt sa podobá na normálne, pričom najpočetnejšie sú hodnoty okolo 1010 - 1020 hPa.
 
 ```{r}
+ggplot(all_data, aes(x = SLP)) + 
+  geom_histogram(bins = 40, fill = "#ddcc36", color = "#e9ecef") +
+  labs(title = paste("Sea level pressure histogram")) +
+  xlab("Atmosférický tlak") +
+  ylab("Počet") +
+  scale_x_continuous(breaks = seq(950, 1200, by = 10)) +
+  scale_y_continuous(breaks = seq(0, 60000, by = 3000))
+```
+
+
+### Graf hustoty
+
+Graf hustoty slúži na porovnanie priebehu hustoty pravdepodobnosti normálneho rozdelenia (zelená čiara) a odhadu hustoty vypočítaného z namernaých hodnôt atmosférického tlaku (červená čiara). Čiary sú približne rovnaké, teda ide o normálne rozdelenie, ktoré je ale trocha špicatejšie. Modrá prerušovaná čiara predstavuje priemernú hodnotu atmosférického tlaku. 
+
+```{r density plot, warning = FALSE}
+
+# denisty plot 
+# data z normalneho rozdelenia
+data_norm <- data.frame(dens = c(rnorm(length(na.omit(all_data$SLP)), mean(all_data$SLP, na.rm = T), sd(all_data$SLP, na.rm = T))))
+
+# porovnanie hodnot normalneho rozdelenia a SLP
+ggplot(all_data, aes(x = SLP), color = 3) + 
+  geom_density(color = 2, size = 0.8) +
+  geom_density(data_norm, mapping = aes(x = dens), color = 3, size = 0.8) +
+  geom_vline(aes(xintercept = mean(SLP, na.rm = T)),
+            color = 4, linetype = "dashed", size = 1) +
+  scale_x_continuous(breaks = seq(900, 1100, by = 10)) +
+  labs(title = paste("Odhad hustoty hodnôt atmosférického tlaku")) +
+  xlab("Atmosférický tlak") +
+  ylab("Hustota pravdepodobnosti")
+
+```
+
+
+
+
+### Husľový graf
+
+Husľový graf doplnený o hlavné kvartily zobrazuje rozdelenie hustoty, pričom aj podľa tohto grafu vidíme, že ide o normálne rozdelenie. Dáta sú najpočetnejšie v okolí hodnoty 1017, postupne smerom k vyšším a nižším hodnotám sa ich hustota zmenšuje.
+
+```{r violin, warning = FALSE}
+
 df <- all_data %>%
   dplyr::select('SLP') %>%
-  tidyr::gather(key='label', value = 'pressure')
+  tidyr::gather(key = 'label', value = 'slp')
 
-ggplot(data = df, aes(factor(label), pressure, fill=label)) +
-  geom_violin(draw_quantiles=c(0.25, 0.5, 0.75))+
-  labs(title = paste("Atmospheric pressure violin plot")) +
-  xlab("") +
-  ylab("SLP - Atmospheric pressure") 
+ggplot(data = df, aes(factor(label), slp, fill = slp)) +
+  geom_violin(draw_quantiles = c(0.25, 0.5, 0.75), fill = "#ddcc36") +
+  labs(title = paste("Husľový graf atmosférického tlaku"), y = "Atmosférický tlak", fill = "Sea level pressure") +
+  theme(axis.title.x = element_blank()) +
+  theme(axis.text.x = element_blank())
+
 ```
 
-### Q-Q plot
 
-```{r}
-ggplot(data = mandatory_data, aes(sample=SLP)) +
+### Q-Q graf
+
+Graf zobrazuje odchýlku empirického od teoretického normálneho rozdelenia. Empirické rozdelenie je v našom prípade rozdelenie nameraných hodnôt atmosférického tlaku. Keďže body ležia blízko priamky normálneho rozdelenia, môžeme povedať, že rozdelenie hodnôt je normálne. Mierne sa odchyľuje len v oblasti dolných kvantilov.
+
+```{r qq, warning = FALSE}
+
+ggplot(data = all_data, aes(sample = SLP)) +
   stat_qq() + 
-  stat_qq_line()
+  stat_qq_line() +
+  labs(title = paste("Q-Q graf atmosférického tlaku"))
+
 ```
 
-### Diagram Rozptylenia
+
+### Diagram rozptýlenia
 
 ```{r}
 df <- all_data %>%
@@ -147,14 +230,14 @@ df <- all_data %>%
 
 ggplot(data = df, aes( pressure,factor(label), colour=label)) +
   geom_jitter() +
-  labs(title = paste("Diagram rozptylenia pre atmosfericky tlak")) +
-  xlab("SLP - Atmosfericky  tlak") +
-  ylab("") 
+  labs(title = paste("Diagram rozptýlenia pre atmosférický tlak")) +
+  xlab("SLP - Atmosférický  tlak") +
+  ylab("") +
+  theme(legend.position = "none")
 
 ```
 
 ```{r}
-
 df <- all_data %>% 
   dplyr::mutate(
     year = ymd_hms(DATE) %>% 
@@ -164,33 +247,85 @@ df <- all_data %>%
   dplyr::select(all_of(c('year', 'SLP')))
 
 ggplot(data = df, aes( SLP,factor(year), colour=year)) +
-  geom_jitter() 
+  geom_jitter() +
+  theme(legend.position = "none")
 ```
 
 ### Graf polosum
+
+Z grafu vidno, že hodnoty sú takmer symetrické okolo mediánu.
 
 ```{r}
 slp <- all_data$SLP
 slp_asc <- sort(slp, decreasing = FALSE)
 slp_desc <- sort(slp, decreasing = TRUE)
 
-ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) + 
-  geom_point(size = 2, color = 2) +
-  scale_x_continuous(breaks = seq(-30, 40, by = 3)) +
-  labs(title = "Graf polosum pre atmosfericky tlak", x = "Tlak") +
+ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc + slp_desc))) + 
+  geom_point(size = 2, color = "#013c7f") +
+  scale_x_continuous(breaks = seq(0, 2000, by = 10)) +
+  labs(title = "Graf polosum pre atmosférický tlak", x = "Atmosférický tlak") +
   theme_bw()
 ```
 
-### Kruhovy graf
+
+### Časový graf atmosférického tlaku
 
 ```{r}
-n <- nrow(all_data)
-lo <- (n * (n - 1) / 2)^(-1 / 2)
-
-Vx <- lo * cos(pi * all_data$SLP)
-Vy <- lo * sin(pi * all_data$SLP)
-
-ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
-  geom_point() + 
-  coord_fixed()
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, SLP) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  autoplot(SLP) +
+  labs(title = "Time graph of sea level pressure",
+       y = "SLP", x = "Date")
 ```
+
+
+
+
+
+
+
+
+
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  dplyr::distinct(date, .keep_all=TRUE) %>%
+  dplyr::select(date, SLP) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(date)>2015) %>%
+  gg_season(SLP, labels = "both") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    year_month = yearmonth(DATE)
+  ) %>%
+  dplyr::group_by(year_month) %>%
+  dplyr::summarise(SLP = na.omit(mean(SLP))) %>%
+  as_tsibble(
+    index = year_month
+    ) %>%
+  tsibble::fill_gaps() %>%
+  dplyr::filter(year(year_month)>210) %>%
+  gg_subseries(SLP, period = "1 year") +
+  labs(y = "Temperature",
+       title = "Seasonal plot: Temperature") 
+```
+
+
