@@ -14,13 +14,11 @@ The horizontal distance at which an object can be seen and identified.
 
 MIN: 000000 MAX: 160000 UNITS: Meters
 
-DOM: A general domain comprised of the numeric characters (0-9).
-
 Missing = 999999
 
 NOTE: Values greater than 160000 are entered as 160000
 
-Viditeľnosť predstavuje - horizontálnu vzdialenosť, po ktorú je objekt viditeľný meranú v metroch.
+Viditeľnosť predstavuje horizontálnu vzdialenosť, po ktorú je objekt viditeľný meranú v metroch.
 
 ```{r load, warning = FALSE}
 all_data <- read.csv(file= "../data/all.csv")

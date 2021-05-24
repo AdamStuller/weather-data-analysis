@@ -1,15 +1,20 @@
 ---
 title: "LP"
-output: html_document
+author: "Adam Štuller"
+output: pdf_document
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+```{r, include = FALSE}
+source('setup.R')
+```
+
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
 ```
 
 # Liquid precipitation
 
-## Spracovanie stlpa
+## Spracovanie stĺpca
 
 Tieto data treba najprv spracovať. Zrážky sa nachádzali pôvodne v dvoch stĺpcoch. Jeden obsahoval merania raz za 24 hodin. Druhy obsahoval spolu  merania za 12 a 6 hodin. Nemohli sme ale použiť iba jedno z týchto meraní, pretože v každnom chýbali nejaké časové úseky. Preto sme sa rozhodli pospájať jednotlivé merania dokopy. 
 
@@ -123,6 +128,7 @@ EnvStats::cv(lp_df$LP, na.rm = T) %>% print(cat("Variacny koeficient: "))# varia
 summary(lp_df$LP)
 lp_df$LP %>% profiling_num()
 ```
+
 ### Asymetria
 
 Šikmost (skewness) je 17.08225. Je velmi kladna, teda rozdelenie je poriadne zasikmene do lava.
@@ -131,6 +137,7 @@ lp_df$LP %>% profiling_num()
 
 
 ### Časový graf
+
 ```{r}
 lp_df %>%
   filter(year(date) == 2002 ) %>%
@@ -141,6 +148,7 @@ lp_df %>%
          )
 
 ```
+
 Na časovom grafe vidíme, že iba niekoľko hodnôt je extremnych. Mohli y to kludne byť vychýlené hodnoty ale rovnako aj storočná voda a nám tie dáta veľmi neubližujú a preto ich nebudeme odstraňovať.
 
 Môžeme sa pozrieť aj na ročný súhrn zrážok.
@@ -179,6 +187,7 @@ lp_df %>%
     ylab("Frekvencia") 
 
 ```
+
 ### Boxplot
 
 Z boxplotu vidíme tú istú informáciu. Veľké množstvo dát sa nachádza okolo nuly a iba niekoľko ma väčšiu hodnotu.
@@ -194,9 +203,11 @@ ggplot(data = df, aes( lp,factor(label), colour=label)) +
   xlab("") +
   ylab("") 
 ```
+
 ### Diagram rozptýlenia pre jednotlivé roky
 
 Vidíme opať, že rok 2017 je čudný.
+
 ```{r}
 df <- lp_df %>% 
   dplyr::mutate(
@@ -207,6 +218,7 @@ df <- lp_df %>%
 ggplot(data = df, aes( LP,factor(year), colour=year)) +
   geom_boxplot() 
 ```
+
 ### Violin 
 
 ```{r}
@@ -273,7 +285,9 @@ lp_df %>%
     labs(y = "Temperature",
        title = "Seasonal plot: Temperature") 
 ```
+
 Vidíme ale ako vyzerajú jednotlivé mesiace. Napríklad máj, jún a júl majú výrazne väčšie priemery. TO isté je vidno aj na ostatných grafoch a prejavuje sa to v celom sezónnom príspevku.
+
 ```{r}
 lp_df %>% 
   as.data.frame() %>%
@@ -307,7 +321,6 @@ m %>%
 
 Môžeme sa ale pokúsiť predpovedať sklon trendu v budúcnosti pomocou lineránej regresie. 
 
-
 ```{r}
 lp_df %>%
   as.data.frame() %>%
@@ -322,18 +335,18 @@ lp_df %>%
     index = year
     ) -> monthly_lp_df 
 
-
 ```
 
 Skúsime to najprv na mesačných súhrnoch zrážok.
+
 ```{r}
 monthly_lp_df %>%
   autoplot()
 
-
 ```
 
-Sezonny prispevok je tam vidno ako ovela krašiu osciláciu a aj trend je oveľa jemnejší
+Sezonny prispevok je tam vidno ako ovela krašiu osciláciu a aj trend je oveľa jemnejší.
+
 ```{r}
 
 m <- monthly_lp_df %>%
@@ -357,6 +370,7 @@ m %>%
   autoplot(monthly_lp_df) 
 ```
 Aj model ktorý sa pokúsi predikovať aj sezónny príspevok.
+
 ```{r}
 
 monthly_lp_df %>%
@@ -366,6 +380,7 @@ s_m %>%
   autoplot(monthly_lp_df) 
 ```
 Oba modeli ukazujú rastúcu tendenciu trendu a celkového množstva zrážok a potvrdzujú to aj vlastnosti danej lineárnej regresie.
+
 ```{r}
 report(m)
 
@@ -375,6 +390,7 @@ report(m)
 Skúsime to urobiť aj pre ročný súhrn zrážok.
 
 ```{r}
+
 lp_df %>%
   as.data.frame() %>%
   dplyr::mutate(
@@ -392,6 +408,7 @@ yearly_lp_df %>%
   autoplot()
 
 ```
+
 Trend je tu oveľa jenoduchší a sezónny príspevok chýba nakoľko sme uź mimo sezón.
 
 ```{r}
@@ -415,28 +432,10 @@ m %>%
   autoplot(yearly_lp_df) 
 
 ```
+
 Vzniknutý model ukazuje rasť ročného súhrnu zrážok, čo potvrdzujú aj jeho vlastnosti. Je to štatisticky významne.
+
 ```{r}
 report(m)
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 

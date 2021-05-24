@@ -17,3 +17,12 @@ getmode <- function(v) {
   uniqv <- unique(v)
   uniqv[which.max(tabulate(match(v, uniqv)))]
 }
+
+NA_values <- c("", '999', '9999', '99999', '999999', '+999', '+9999','+99999', '+999999', '009999')
+
+process_col <- function(val, scaling = 1) {
+  if (is.na(as.numeric(val)) || as.numeric(val) %in% NA_values){
+    val <- NA
+  }
+  return (as.numeric(val)/scaling)
+} 

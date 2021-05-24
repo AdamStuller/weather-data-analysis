@@ -1,11 +1,12 @@
 ---
 title: "1.hypotéza"
+author: "Denisa Mensatorisová a Adam Štuller"
 output: pdf_document
 ---
 
-## Ročná teplota rastie a s ňou rastie aj množstvo zrážok.
+# Ročná teplota rastie a s ňou rastie aj množstvo zrážok.
 
-Teplota v súčasných rokoch je vyššia ako teplota pred 40 rokmi.
+Prvá hypotéza sa týka závislosti teploty od množstva zrážok. Ako prvé overíme, či sa postupom času priemerné teploty zvyšujú. Ďalej spočítame priemerné množstvo zrážok pre jednotlivé roky a overíme závislosť priemerných ročných teplôt od ročného množstva zrážok.
 
 ```{r, include = FALSE}
 source('setup.R')
@@ -36,7 +37,6 @@ head(data_temperature)
 Graf zobrazuje priemerné denné teploty pre roky 1973 - 2020. Cez graf je vykreslený 95% interval spoľahlivosti lineárneho modelu. Ak by sme merania opakovali na inej vzorke, 95% regresných priamok bude v tomto intervale. Vidíme, že s pribúdajúcim časom sa lineárna priamka mierne zvyšuje, čo svedčí o narastajúcej teplote.
 
 ```{r}
-# priemerna denna teplota 
 df_dayMean_tmp <- data_temperature %>% group_by(date) %>% summarise(tmp = na.omit(mean(TMP)), year = year, md = md)
 df_dayMean_tmp <- unique(df_dayMean_tmp)
 head(df_dayMean_tmp)
@@ -61,37 +61,10 @@ head(table_year_md_tmp)
 ```
 
 
-
-
-```{r}
-# SOM mapa -> roky a dni
-# vytvorenie matice
-# set.seed(123)
-# data_md_matrix <- as.matrix(table_year_md_tmp[,-1])
-# 
-# som_grid <- kohonen::somgrid(xdim = 4, ydim = 3, topo = "hexagonal")
-# 
-# som_model <- kohonen::som(X = data_md_matrix, grid = som_grid,
-#               rlen = 200, alpha = c(0.05,0.01), keep.data = T, dist.fcts = "euclidean", radius = 9)
-# 
-# plot(som_model, type="changes")
-# 
-# graphics::plot(som_model, type = "codes", shape = "straight")
-# 
-# som_model$unit.classif # zadelenie dni do tried
-# table(som_model$unit.classif)
-# 
-# som_model$grid
-# som_model$codes[[1]]
-
-```
-
 ### Priemerná mesačná teplota
 
 Graf zobrazuje priemerné mesačné teploty pre jednotlivé roky 1973 - 2020. Tu je použitá metóda GAM - Generalized Additive Model, ktorá zachytáva aj sezónne a trendové zložky časového radu.
 Opäť aj tu je vidieť, že teplota sa mierne s časom zvyšuje.
-
-
 
 ```{r}
 # priemerna mesacna teplota 
@@ -139,7 +112,6 @@ heatmap(data_month_matrix,
 ### Hierarchické klastrovanie
 
 Výstupom hierarchického zhlukovania je strom nazývaný dendrogram, ktorý zobrazuje sekvencie klastrov.Výška jednotlivých klastrov určuje stupeň podobnosti podľa stupnice na ľavej strane dendrogramu. Určili sme optimálny počet klastrov 4. Opäť podobné roky sú zoskupené do 1 klastra. V zelenom klasti sa nachádza najviac rokov nad 2000, z čoho môžme povedať, že teplota v aktuálnom tisícročí je podobná vo viacerých rokoch. Naopak väčšina 80-tych rokov je v modrom klastri teda tieto sú si teplotou dosť podobné.
-
 
 ```{r}
 rownames(data_month_matrix) <- table_year_month_tmp$year
@@ -224,7 +196,6 @@ ggplot(df, aes(x = year, y = class)) +
 
 
 Na základe klastrovania pomocou SOM mapy sme zadelili jednotlivé roky do 6 tried podľa ich priemerných mesačných teplôt. Ako vidieť z grafov 6. trieda obsahuje väčšinu súčasných rokov nad 2010 a priemerná teplota v tejto triede je najvyššia, čo svedčí o tom, že v posledných rokoch sa teplota zvyšuje. Naopak tried č.1 obsahuje väčšinu 70-tych rokov a priemerná teplota rokov patriacich do tejto triedy je najnižšia. 
-
 
 
 ```{r}
@@ -326,10 +297,12 @@ Z grafu pre poslednú skupinu (nad 20°C) je vidieť, že počet dní kedy teplo
 
 
 
-### Predikčné modely na 2 roky:
+## Predikčné modely na 2 roky:
+
 1. ETS - Exponential smoothing state space model
 2. ARIMA - Autoregressive integrated moving average
-3. sNAIVE - Naive method
+3. SNAIVE - Naive method
+
 
 ```{r}
 tmpts <- data_temperature %>%
@@ -349,23 +322,14 @@ tmpts %>%
     snaive = SNAIVE(tmp)
   ) %>%
   forecast(h = "2 years") %>% 
-  autoplot(filter(tmpts, year(year_month) > 2010), level = NULL)
+  autoplot(filter(tmpts, year(year_month) > 2010), level = NULL) +
+  labs(title = "Predikčné modely", x = "Rok") +
+  scale_y_continuous(breaks = seq(-10, 30, by = 3))
 
 ```
 
 
-
-
-
-
-
-
-
-
-
-
-
-### Lineárny model
+## Lineárny model
 
 H0: ai=0 H1: ai!=0. (vhodný je model, kde sú koeficienty štatisticky významne odlišné od 0)
 
@@ -514,3 +478,116 @@ report(m)
 
 
 
+```{r}
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP, LP24) %>%
+  separate(LP, c('lp_observation_period', 'lp_observation', NA, NA)) %>%
+  filter(lp_observation_period == 12) %>%
+  dplyr::mutate(lp_observation = map_dbl(lp_observation, process_col, 10)) %>%
+  dplyr::select(date, lp_observation) %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(LP12 = sum(lp_observation)) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  dplyr::filter(year(date)>0) %>%
+  tsibble::fill_gaps() -> df_lp12
+
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP, LP24) %>%
+  separate(LP, c('lp_observation_period', 'lp_observation', NA, NA)) %>% 
+  filter(lp_observation_period == "06") %>%
+  dplyr::mutate(lp_observation = map_dbl(lp_observation, process_col, 10)) %>%
+  dplyr::select(date, lp_observation) %>%
+  dplyr::group_by(date) %>%
+  dplyr::summarise(LP6 = sum(lp_observation)) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  dplyr::filter(year(date)>0) %>%
+  tsibble::fill_gaps() -> df_lp6
+
+all_data %>% 
+  dplyr::mutate(
+    date = as_date(DATE)
+  ) %>%
+  select(date, LP24) %>%
+  distinct(date, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = date
+  ) %>%
+  tsibble::fill_gaps() -> df_lp24
+
+merge(df_lp6, df_lp12, by = "date", all = TRUE) %>%
+  merge(df_lp24, by = "date", all = TRUE) -> merged_df
+
+merged_df %>%
+  dplyr::mutate(
+    LP = coalesce(LP12, LP6, LP24) %>% replace_na(0)
+  ) %>%
+  as_tsibble(
+    index = date
+  ) -> lp_df
+
+lp_df %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(LP_SUM = na.omit(sum(LP))) %>%
+  as.data.frame() %>%
+  distinct(year, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year
+    ) -> yearly_lp_df
+```
+
+Ďalej sa pozrieme na priemerné ročné teploty a počet zrážok.
+
+Opäť pomocou výsledkov lineárneho modelu vieme určiť, či s rastúcou teplotou rastie aj počet zrážok.
+
+Celková p-hodnota modelu je menšia ako 0.05, teda hypotézu o nulovosti koeficientov modelu zamietame. Závislosť medzi teplotou a množstvom zrážok je priama a je štatisticky významná.
+
+Teda našu hypotézu: __Ročná teplota rastie a s ňou rastie aj množstvo zrážok.__ nezamietame.
+
+
+```{r}
+data_temperature %>%
+  as.data.frame() %>%
+  dplyr::mutate(
+    year = year(date)
+  ) %>%
+  dplyr::group_by(year) %>%
+  dplyr::summarise(TMP = na.omit(mean(TMP))) %>%
+  as.data.frame() %>%
+  distinct(year, .keep_all = TRUE) %>%
+  as_tsibble(
+    index = year
+    ) -> yearly_tmp_df
+
+
+model <- lm(yearly_tmp_df$TMP ~ yearly_lp_df$LP_SUM)
+summary(model)
+
+pairs( ~ yearly_tmp_df$TMP + yearly_lp_df$LP_SUM, panel = function(x,y){
+  points(x,y)
+  abline(lm(y~x), col = 2)})
+
+```
+
+
+## Zhodnotenie
+
+Overovali sme hypotézu, že ročná teplota rastie a s ňou rastie aj množstvo zrážok. 
+
+Ako prvý krok sme sklastrovali teplotu aby sme videli nejaké zmeny v priebehu času. Podarilo sa nám vytvoriť niekoľko skupín v ktorých jasne vidieť, že priemerná teplota v skupinách sa líši.
+
+Ďalej sme potvrdili hypotézu pomocou lineárneho modelu a dokázali sme, že priemerná ročná teplota rastie a s ňou rastie aj množstvo zrážok.

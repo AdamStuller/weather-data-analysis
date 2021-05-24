@@ -1,0 +1,63 @@
+---
+title: "Prieskumná analýza"
+author: Denisa Mensatorisová a Adam Štuller
+output: pdf_document
+---
+
+```{r, include = FALSE}
+source('setup.R')
+```
+
+```{r}
+all_data <- read.csv(file= "../data/all.csv")
+```
+
+
+Vo vybraných dátach sa nachádza 15 atribútov, z toho X označuje poradové číslo merania, STATION je ID stanice Sliač a DATE predstavuje presný dátum a čas merania. Ostatné atribúty predstavujú hodnoty meraní pre:
+
+- TMP - teplota
+- WND_ANGLE - uhol vetra
+- WND_SPEED - rýchlosť vetra
+- VIS - viditeľnosť
+- SLP - atmosférický tlak
+- CIG - výška oblakov
+- DEW - rosný bod
+- SNOW_DEPTH - hĺbka snehu
+- PWO - pozorované počasie
+- GSO - zemský povrch
+- LP - zrážky namerané každých 6 hodín
+- LP24 - zrážky namerané každých 24 hodín
+
+V dátach sa nachádzajú prevažne numerické spojité atribúty, kategorické sú iba PWO a GSO. Jednotlivé atribúty sú bližšie opísané v časti prieskumnej analýzy spolu s ich distribúciami a grafmi. Kompletný zoznam atribútov, ktoré sa v dátach nachádzajú je uvedený v priloženej dokumentácii k datasetu.
+
+```{r}
+
+str(all_data)
+glimpse(all_data)
+
+status(all_data) 
+summary(all_data)
+
+```
+
+
+Korelačná matica zobrazuje hodnoty korelácie medzi vybranými atribútmi - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24. Hodnota (výberového) korelačného koeficientu sa pohybuje v intervale od -1 do 1. Ak je toto číslo kladné, vzťah medzi danými dvoma atribútmi je priamy, teda s narastajúcimi hodnotami X narastajú aj hodnoty Y. Ak je číslo záporné, tak medzi X a Y je vzťah nepriamy, čiže s narastajúcimi (klesajúcimi) hodnotami X klesajú (rastú) hodnoty Y. Ak je číslo rovné 0 tak neexistuje lineárna závislosť medzi X a Y, môže však existovať nelineárna závislosť. A teda čím bližšia hodnota k |1|, tým silnejší je vzťah medzi X a Y.
+
+Najvyššia korelácia je medzi TMP a DEW (0.94), ide o kladnú koreláciu teda, čím vyššia je teplota tým vyššia je hodnota rosného bodu. Ďalej je dosť silná kladná korelácia aj medzi VIS a WND_SPEED.
+
+Naopak záporná korelácia je medzi TMP a SLP, SLP a LP24.
+
+
+```{r}
+# korelacie vybranych numerickych atributov - TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, LP
+data_cor <- select(all_data, TMP, WND_ANGLE, WND_SPEED, VIS, SLP, CIG, DEW, SNOW_DEPTH, PWO, GSO, LP24)
+cor <- cor(data_cor, use = "na.or.complete")
+
+corrplot.mixed(cor, lower="number", upper="circle", tl.pos = "lt", lower.col = "black",number.cex=0.75)
+
+```
+
+
+```{r, eval = FALSE, echo=TRUE}
+pairs(~TMP + SLP + DEW + VIS + CIG + SLP , data = all_data)
+```

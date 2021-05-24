@@ -1,11 +1,18 @@
 ---
 title: "SNOW_DEPTH"
 author: "Adam Stuller"
-date: "4/12/2021"
-output: html_document
+output: pdf_document
 ---
+
+```{r, include = FALSE}
+source('setup.R')
+```
+
 # SNOW_DEPTH
 
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
 
 ### Centralna poloha dat
 
@@ -55,6 +62,7 @@ all_data['SNOW_DEPTH'] %>% profiling_num()
 
 
 ### Asymetria
+
 Šikmost (skewness) je 3.188859. Je vyrazne kladna, teda rozdelenie je zasikmene do lava.
 
 Špicatost (kurtosis) - 36.71543 je kladna a vysoka teda spicatejsia ako data z normálneho rozdelenia. 
@@ -62,6 +70,7 @@ all_data['SNOW_DEPTH'] %>% profiling_num()
 ### Histogram 
 
 Ako vidime rozdelenie snehu vzdialene pripomina exponencialne rozdelnenie
+
 ```{r}
 df <- all_data %>%
   dplyr::filter(SNOW_DEPTH < 100)
@@ -76,10 +85,10 @@ ggplot(df, aes(x=SNOW_DEPTH)) +
 ```
 
 
-
 ### Boxplot 
 
-Na boxplote vydime aj vychylene hodnoty. 
+Na boxplote vidime aj vychylene hodnoty. 
+
 ```{r}
 df <- all_data %>% 
   dplyr::mutate(
@@ -105,6 +114,7 @@ ggplot(data = df, aes( snow,factor(label), colour=label)) +
 
 
 ### Violin 
+
 ```{r}
 df <- all_data %>%
   dplyr::select('SNOW_DEPTH') %>%
@@ -122,7 +132,8 @@ ggplot(data = all_data, aes(sample=SNOW_DEPTH)) +
   stat_qq_line()
 ```
 
-Diagram Rozptylenia
+### Diagram Rozptylenia
+
 ```{r}
 df <- all_data %>%
   dplyr::select('SNOW_DEPTH') %>%

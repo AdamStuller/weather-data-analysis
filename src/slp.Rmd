@@ -16,8 +16,6 @@ MIN: 08600 MAX: 10900 UNITS: Hectopascals
 
 SCALING FACTOR: 10
 
-DOM: A general domain comprised of the numeric characters (0-9).
-
 99999 = Missing
 
 Atribút sea level pressure reprezentuje atmosférický tlak meraný v hektopascaloch.
@@ -307,8 +305,8 @@ all_data %>%
   tsibble::fill_gaps() %>%
   dplyr::filter(year(date)>2015) %>%
   gg_season(SLP, labels = "both") +
-  labs(y = "Temperature",
-       title = "Seasonal plot: Temperature") 
+  labs(y = "SLP",
+       title = "Seasonal plot: SLP") 
 ```
 
 ```{r}
@@ -324,8 +322,8 @@ all_data %>%
   tsibble::fill_gaps() %>%
   dplyr::filter(year(year_month)>210) %>%
   gg_subseries(SLP, period = "1 year") +
-  labs(y = "Temperature",
-       title = "Seasonal plot: Temperature") 
+  labs(y = "SLP",
+       title = "Seasonal plot: SLP") 
 ```
 
 

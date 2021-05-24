@@ -1,13 +1,20 @@
 ---
-title: "Untitled"
+title: "Ceiling"
 author: "Adam Stuller"
-date: "4/12/2021"
-output: html_document
+output: pdf_document
 ---
+
+```{r, include = FALSE}
+source('setup.R')
+```
 
 # CIG SKY-CONDITION-OBSERVATION ceiling height dimension
 
 Výška polohy oblakov v metroch nad zemou. 
+
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
 
 ```{r}
 describe(all_data$CIG) 
@@ -70,6 +77,7 @@ all_data['CIG'] %>% profiling_num()
 ### Histogram 
 
 Vidime, ze distribucia dat je velmi zaujimava. 
+
 ```{r}
 ggplot(all_data, aes(x=CIG)) + 
   geom_histogram(bins = 10, binwidth = 500,fill="2", color="#e9ecef") +
@@ -77,11 +85,13 @@ ggplot(all_data, aes(x=CIG)) +
   xlab("CIG - ceiling height") +
   ylab("Frequency") 
 ```
+
 Pri pohlade na  hodnoty nizsie ako maximalna hodnota 22000, vidime este lepsie, ze sa to nepotoba na normalne ani na ine slusne rozdelnie. 
 
 ### Boxplot 
 
 Pro pohlade na boxplot vidime, ze data su vysoko nevyvazene a median je daleko od stredu grafu. 
+
 ```{r}
 df <- all_data %>% 
   dplyr::select('CIG') %>%
@@ -95,7 +105,8 @@ ggplot(data = df, aes( ceiling,factor(label), colour=label)) +
 ```
 
 
- Na boxplote pre jednotlive roky vidime, ze po roku 2012 prislo k zaujimavej zmene merania. 
+Na boxplote pre jednotlive roky vidime, ze po roku 2012 prislo k zaujimavej zmene merania. 
+ 
 ```{r}
 df <- all_data %>% 
   dplyr::mutate(
@@ -123,7 +134,6 @@ ggplot(data = df, aes(factor(label), ceiling, fill=label)) +
 ```
 
 
-
 ### Q-Q plot 
 
 qq plot iba ukazuje, ze o normalnom rozdelni nemoze byt ani rec.
@@ -136,7 +146,9 @@ ggplot(data = all_data, aes(sample=CIG)) +
 
 
 ###  Diagram Rozptylenia
-Ukazuje sa nam  aj druhe caste meranie pod 10000, ktore sme uz vyssie spomenuli. Nevieme coho je to nasledkom. 
+
+Ukazuje sa nam aj druhe časte meranie pod 10000, ktoré sme uz vyššie spomenuli. Nevieme čoho je to nasledkom. 
+
 ```{r}
 df <- all_data %>%
   dplyr::select('CIG') %>%
@@ -177,16 +189,3 @@ ggplot(data.frame(cig_asc), aes(x = cig_asc, y = 0.5*(cig_asc+cig_desc))) +
   theme_bw()
 ```
 
-
-### Kruhovy graf
-```{r}
-n <- nrow(all_data)
-lo <- (n * (n - 1) / 2)^(-1 / 2)
-
-Vx <- lo * cos(pi * all_data$CIG)
-Vy <- lo * sin(pi * all_data$CIG)
-
-ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
-  geom_point() + 
-  coord_fixed()
-```

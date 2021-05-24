@@ -1,24 +1,37 @@
 ---
-title: "DEW"
+title: "PWO"
 author: "Adam Stuller"
-date: "4/12/2021"
-output: html_document
+output: pdf_document
 ---
+
+```{r, include = FALSE}
+source('setup.R')
+```
 
 # PWO - Past weather observation
 
 Jedna sa o kategorickú zakódovanú informáciu o pozorovanom pocasí. Z dookumentacie su hodnoty nasledovne: 
 
 Domain Value ID: Domain Value Definition Text 
+
 0 = Cloud covering 1/2 or less of the sky throughout the appropriate period 
-1 = Cloud covering more than ½ of the sky duringpart of the appropriate period and covering ½ or less during part of the period 
+
+1 = Cloud covering more than ½ of the sky duringpart of the appropriate period and covering ½ or less during part of the period
+
 2 = Cloud covering more than 1/2 of the sky throughout the appropriate period 
+
 3 = Sandstorm, duststorm or blowing snow 
+
 4 = Fog or ice fog or thick haze 
+
 5 = Drizzle
+
 6 = Rain
+
 7 = Snow, or rain and snow mixed 
+
 8 = Shower(s) 
+
 9 = Thunderstorm(s) with or without precipitation
 
 ### Centralna poloha dat
@@ -38,6 +51,10 @@ Relativne pocetnost jednotlivych tried:
            8 - 0.0390577322 %   
            9 - 0.0336318143 %
   
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
+
 
 ```{r}
 unique(all_data$PWO)
@@ -51,7 +68,7 @@ getmode(na.omit(all_data$PWO)) %>%
 ``` 
 
 
-### Batplot 
+### Barplot 
 
 ```{r}
 df <- all_data %>%
@@ -67,4 +84,4 @@ ggplot(df, aes(x = PWO)) +
 ```
 
 
-Jedna sa o kategoricu velicinu, s velkym mnozstvom NA hdnot. Na sa tam objavuju iba preto, ze sa tato velicina merala v konkretnych intervaloch a medzi nimi nie. 
+Jedna sa o kategoricku veličinu, s veľkým množstvom NA hodnot. NA sa tam objavujú iba preto, že sa tato veličina merala v konkretnych intervaloch a medzi nimi nie. 

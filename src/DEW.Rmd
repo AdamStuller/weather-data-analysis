@@ -1,11 +1,18 @@
 ---
 title: "DEW"
 author: "Adam Stuller"
-date: "4/12/2021"
-output: html_document
+output: pdf_document
 ---
 
+```{r, include = FALSE}
+source('setup.R')
+```
+
 # DEW - rosny bod
+
+```{r load, warning = FALSE}
+all_data <- read.csv(file= "../data/all.csv")
+```
 
 ```{r}
 describe(all_data$DEW) 
@@ -57,6 +64,7 @@ EnvStats::cv(all_data$DEW, na.rm = T) %>% print(cat("Variacny koeficient: "))# v
 summary(all_data$DEW)
 all_data['DEW'] %>% profiling_num()
 ```
+
 ### Asymetria
 
 Šikmost (skewness) je -0.3767112. Je teda zaporna a hovori, ze data su jemne nachylene doprava. 
@@ -66,6 +74,7 @@ all_data['DEW'] %>% profiling_num()
 ### Histogram 
 
 Data sa podobaju na normalne rozdelenie, aj ked vrchol je trosku dlhsi a plytkejsi. Nahnute su doprava a z tej straky su aj dost strme. 
+
 ```{r}
 ggplot(all_data, aes(x=DEW)) + 
   geom_histogram(bins = 40, binwidth = 2,fill="2", color="#e9ecef") +
@@ -77,8 +86,8 @@ ggplot(all_data, aes(x=DEW)) +
 ```
 
 
-
 ### Boxplot 
+
 ```{r}
 df <- all_data %>% 
   dplyr::mutate(
@@ -104,6 +113,7 @@ ggplot(data = df, aes( dewpoint,factor(label), colour=label)) +
 
 
 ### Violin 
+
 ```{r}
 df <- all_data %>%
   dplyr::select('DEW') %>%
@@ -124,6 +134,7 @@ ggplot(data = all_data, aes(sample=DEW)) +
 ```
 
 ### Diagram Rozptylenia
+
 ```{r}
 df <- all_data %>%
   dplyr::select('DEW') %>%
@@ -149,7 +160,6 @@ ggplot(data = df, aes( DEW,factor(year), colour=year)) +
 ``` 
 
 
-
 ### Graf polosum 
 
 ```{r}
@@ -163,17 +173,4 @@ ggplot(data.frame(slp_asc), aes(x = slp_asc, y = 0.5*(slp_asc+slp_desc))) +
   labs(title = "Graf polosum pre atmosfericky tlak", x = "Tlak") +
   theme_bw()
 ```
-### Kruhovy graf
-```{r}
-n <- nrow(all_data)
-lo <- (n * (n - 1) / 2)^(-1 / 2)
-
-Vx <- lo * cos(pi * all_data$DEW)
-Vy <- lo * sin(pi * all_data$DEW)
-
-ggplot(mapping=aes( x=c(Vx, -Vx), y=c(Vy, -Vy))) +
-  geom_point() + 
-  coord_fixed()
-```
-
 

@@ -16,9 +16,6 @@ MIN: -0932 MAX: +0618 UNITS: Degrees Celsius
 
 SCALING FACTOR: 10
 
-DOM: A general domain comprised of the numeric characters (0-9), a plus sign (+), and a minus sign (-).
-+9999 = Missing.
-
 According to isd documentation, under TMP field there are two information. AIR-TEMPERATURE-OBSERVATION air temperature which concerns us and should be numeric, with sign prefix. If any value is missing 9999 represents it. It is scaled up tenfold. 
 
 Second information does not concern us and is thus removed. Both values are separated and only temperature is kept. Temperature is then converted to numeric (if not 9999) and divided by 10.  
@@ -28,6 +25,7 @@ Teplota vzduchu meraná v °C.
 
 ```{r load, warning = FALSE}
 all_data <- read.csv(file= "../data/all.csv")
+head(all_data)
 ```
 
 
@@ -363,8 +361,6 @@ ggplot(data.frame(tmp_asc), aes(x = tmp_asc, y = 0.5*(tmp_asc+tmp_desc))) +
   theme_bw()
 
 ```
-
-
 
 
 
