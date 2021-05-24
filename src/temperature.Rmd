@@ -553,7 +553,7 @@ components(m) %>%
   as_tsibble() %>%
   autoplot(tmp, colour="gray") +
   geom_line(aes(y=trend), colour = "#D55E00") +
-  geom_smooth(color = 4) +
+  geom_smooth(color = 4)
   labs(
     x = "Rok",
     y = "Tempeature",

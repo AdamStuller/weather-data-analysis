@@ -74,6 +74,9 @@ read.csv(file= "../data/all_data.csv") %>%
 
 ```
 
+
+
+
 ```{r}
 all_data <- read.csv(file= "../data/all.csv")
 View(all_data)
